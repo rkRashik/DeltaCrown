@@ -118,6 +118,17 @@
             align-items: start; /* Prevents stretching to equalize height which looks bad when content differs */
         }
         
+        /* touch targets: tabs and the in-page "Career" link reach 44px on touch screens */
+        @media (pointer: coarse) {
+            .tab-btn, #center-column button[data-profile-tab-target] { min-height: 44px; min-width: 44px; }
+        }
+
+        /* While the page is still streaming in, the sidebars (earlier in the source than the centre column) would be
+           painted above content that has not arrived yet and then jump below it. Below 1024px they stay invisible
+           (and so do not count as layout shift) until the DOM is complete. */
+        @media (max-width: 1023px) {
+            .dashboard-grid:not(.dg-ready) > #left-sidebar, .dashboard-grid:not(.dg-ready) > #right-sidebar { visibility: hidden; }
+        }
         @media (max-width: 1023px) {
             .dashboard-grid > #center-column { order: 1; }
             .dashboard-grid > #left-sidebar { order: 2; }
@@ -425,7 +436,7 @@
     <div class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 dashboard-grid{% if not relationship_ctx.is_owner and not is_owner and not discord_handle and not discord_url and not social_links_renderable and not hardware_gears and not hardware_loadout.is_complete %} dashboard-grid--no-left{% endif %}">
 
         {% if relationship_ctx.is_owner or is_owner or discord_handle or discord_url or social_links_renderable or hardware_gears or hardware_loadout.is_complete %}
-        <aside id="left-sidebar" class="space-y-6 order-2 lg:order-1 lg:col-span-1">
+        <aside id="left-sidebar" aria-label="Links, gear and wallet" class="space-y-6 order-2 lg:order-1 lg:col-span-1">
             
             {% if is_owner and completion_data %}
             {# UP PHASE 8: Real Profile Completion Widget (Owner Only) #}
@@ -433,7 +444,7 @@
                 <div class="absolute -right-8 -top-8 bg-gradient-to-br from-z-gold/20 to-transparent w-32 h-32 rounded-full blur-2xl"></div>
                 
                 <div class="flex justify-between items-center mb-4 relative z-10">
-                    <h3 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h3>
+                    <h2 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h2>
                     <div class="px-2 py-1 rounded text-xs font-bold border" style="background: rgba(255, 214, 10, 0.2); color: #FFD60A; border-color: rgba(255, 214, 10, 0.35);">{{ completion_percentage }}%</div>
                 </div>
                 
@@ -446,7 +457,7 @@
                     Complete your <span class="text-white font-bold">{{ completion_data.next_action.label }}</span> to boost your profile.
                 </p>
                 <a href="{{ completion_data.next_action.url }}" class="block w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-z-gold hover:text-black hover:border-z-gold transition uppercase text-center">
-                    <i class="{{ completion_data.next_action.icon }} mr-2"></i>Complete Now
+                    <i class="fa-solid fa-arrow-right mr-2" aria-hidden="true"></i>Complete now
                 </a>
                 {% else %}
                 <p class="text-xs text-green-400 mb-4">
@@ -460,9 +471,9 @@
             {% if relationship_ctx.is_owner or is_owner or discord_handle or discord_url or social_links_renderable %}
             <div class="glass-panel p-6 rounded-2xl">
                 <div class="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-link text-z-cyan"></i> Connect
-                    </h3>
+                    </h2>
                 </div>
 
                 {# Discord-First Row with proper copy button #}
@@ -541,12 +552,12 @@
 
             {# UP PHASE 8: Gear Widget — navigates to Gear tab; shows hardware_loadout fallback #}
             {% if relationship_ctx.is_owner or is_owner or hardware_gears or hardware_loadout.is_complete %}
-            <div class="glass-panel p-5 rounded-2xl group cursor-pointer hover:border-white/30 transition"
-                 data-profile-tab-target="gear" role="button" tabindex="0" aria-label="View gear setup">
+            <div class="glass-panel p-5 rounded-2xl group hover:border-white/30 transition{% if hardware_gears or hardware_loadout.is_complete %} cursor-pointer{% endif %}"
+                 {% if hardware_gears or hardware_loadout.is_complete %}data-profile-tab-target="gear" role="button" tabindex="0" aria-label="View gear setup"{% endif %}>
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-microchip text-z-cyan" aria-hidden="true"></i> Gear
-                    </h3>
+                    </h2>
                     <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 group-hover:text-z-green transition text-xs"></i>
                 </div>
                 <div class="space-y-2">
@@ -845,15 +856,15 @@
         </section>
 
 
-        <aside id="right-sidebar" class="space-y-6 order-3 lg:col-span-1 transition-all duration-500">
+        <aside id="right-sidebar" aria-label="Streams, teams and trophies" class="space-y-6 order-3 lg:col-span-1 transition-all duration-500">
             
             {# Streams: shown only when configured (or to the owner, to add one) #}
             {% if stream_platforms or is_owner %}
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-tower-broadcast text-z-cyan" aria-hidden="true"></i> Streams
-                    </h3>
+                    </h2>
                 </div>
                 
                 {% if stream_platforms %}
@@ -905,9 +916,9 @@
             {% if user_teams or is_owner %}
             <div class="glass-panel p-5 rounded-2xl">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-users text-z-cyan" aria-hidden="true"></i> Teams
-                    </h3>
+                    </h2>
                 </div>
                 {% if user_teams %}
                 <div class="space-y-2">
@@ -949,9 +960,9 @@
             <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-white/30 transition"
                  data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-trophy text-z-gold" aria-hidden="true"></i> Trophies
-                    </h3>
+                    </h2>
                     <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 text-xs"></i>
                 </div>
                 {% if sidebar_achievements_data %}
@@ -997,9 +1008,9 @@
             {% if all_passports_sb %}
             <div class="glass-panel p-5 rounded-2xl">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-id-card text-z-cyan" aria-hidden="true"></i> Game passports
-                    </h3>
+                    </h2>
                     <span class="text-[9px] text-gray-500">
                         {% if is_owner %}{{ all_passports_sb|length }} linked{% else %}In-game IDs{% endif %}
                     </span>
@@ -1041,11 +1052,11 @@
             <div class="glass-panel p-5 rounded-2xl text-center">
                 <div class="text-sm text-gray-300 mb-3">Follow {{ profile_user.username }} to see their tournament results and team changes.</div>
                 {% if user.is_authenticated %}
-                <button class="w-full py-2.5 rounded-xl bg-z-cyan text-black text-sm font-semibold hover:brightness-110 transition follow-btn" data-target-user="{{ profile_user.username }}">
+                <button class="w-full py-2.5 rounded-xl bg-z-cyan text-black text-sm font-semibold hover:brightness-110 transition follow-btn" data-follow-btn data-follow-extra-class="w-full" data-is-following="false" data-target-user="{{ profile_user.username }}">
                     Follow
                 </button>
                 {% else %}
-                <a href="{% url 'account:login' %}?next={{ request.path }}" class="block w-full py-2.5 rounded-xl bg-z-cyan text-black text-sm font-semibold hover:brightness-110 transition">
+                <a href="{% url 'account:login' %}?next={{ request.path }}" class="block w-full py-3 rounded-xl bg-z-cyan text-black text-sm font-semibold hover:brightness-110 transition">
                     Sign in to follow
                 </a>
                 {% endif %}
@@ -1058,6 +1069,14 @@
 
     </div>
 <!-- End Zenith Profile Wrapper -->
+
+<noscript><style>.dashboard-grid > #left-sidebar, .dashboard-grid > #right-sidebar { visibility: visible !important; }</style></noscript>
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    function ready() { var g = document.querySelector('.dashboard-grid'); if (g) g.classList.add('dg-ready'); }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', ready); } else { ready(); }
+})();
+</script>
 
 <script nonce="{{ request.csp_nonce }}">
 (function () {

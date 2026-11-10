@@ -117,7 +117,7 @@
         {% if organization %}
         <a href="{{ organization.url }}" class="inline-flex items-center gap-2 mt-3 text-[10px] font-bold text-[var(--team-primary)] uppercase tracking-wider hover:opacity-80 transition dc-compact-action" title="Part of {{ organization.name }}">
           {% if organization.logo_url %}
-          <img src="{{ organization.logo_url }}" alt="{{ organization.name }}" class="w-4 h-4 rounded-full object-cover border border-[var(--team-primary)]/30" />
+          <img src="{{ organization.logo_url }}" alt="" class="w-4 h-4 rounded-full object-cover border border-[var(--team-primary)]/30" />
           {% endif %}
           {{ organization.name }}
         </a>
@@ -520,10 +520,10 @@
       <section id="overview">
         <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
           <div class="flex-1">
-            <h3 class="text-white font-display font-bold text-lg mb-3 flex items-center gap-2">
+            <h2 class="text-white font-display font-bold text-lg mb-3 flex items-center gap-2">
               <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
               About the team
-            </h3>
+            </h2>
             {% if team.description %}
             <p class="text-slate-400 text-sm leading-7">
               {{ team.description|linebreaksbr }}
@@ -2189,7 +2189,7 @@
         {% if organization %}
         <a href="{{ organization.url }}" class="mob-org-link mob-tap">
           <span class="mob-org-icon" style="background:rgba(226,183,97,.22);">
-            {% if organization.logo_url %}<img src="{{ organization.logo_url }}" alt="{{ organization.name }}">{% else %}{{ organization.name|slice:":1"|upper }}{% endif %}
+            {% if organization.logo_url %}<img src="{{ organization.logo_url }}" alt="">{% else %}{{ organization.name|slice:":1"|upper }}{% endif %}
           </span>
           <span class="mob-org-name">{{ organization.name|upper }}</span>
         </a>
@@ -2288,7 +2288,7 @@
           </div>
           {% if match_history %}
           <div class="mob-form-row">
-            <span style="font-family:'Inter',sans-serif;font-size:9px;font-weight:600;letter-spacing:.09em;color:rgba(255,255,255,.25);">LAST 5</span>
+            <span style="font-family:'Inter',sans-serif;font-size:9px;font-weight:600;letter-spacing:.09em;color:rgba(255,255,255,.62);">LAST 5</span>
             <div class="mob-form-strip">
               {% for match in match_history|slice:":5" %}
               {% with r=match.result|lower %}
@@ -2320,7 +2320,7 @@
             {% endif %}
             <div style="flex:1;min-width:0;">
               <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.07em;color:rgba(255,255,255,.75);">{{ team.game.name|upper }}</div>
-              <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Competitive Division</div>
+              <div style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.62);margin-top:1px;">Competitive Division</div>
             </div>
           </div>
           {% if team.description %}
@@ -2357,7 +2357,7 @@
               <div class="mob-op-name">{{ op.name }}</div>
               <div class="mob-op-meta">{{ op.prize_pool }} · {{ op.matches_remaining }} matches left</div>
             </div>
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:rgba(255,255,255,.22);flex-shrink:0;"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:rgba(255,255,255,.62);flex-shrink:0;"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           {% endfor %}
         </div>
@@ -2379,7 +2379,7 @@
             <div style="flex:1;min-width:0;">
               <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);">Open Position</div>
               <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;">
-                {% if training.applicant_status.has_any %}<span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35);">{% endif %}{{ team.name }} is recruiting{% if training.applicant_status.has_any %}</span>{% endif %}
+                {% if training.applicant_status.has_any %}<span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.62);">{% endif %}{{ team.name }} is recruiting{% if training.applicant_status.has_any %}</span>{% endif %}
               </div>
             </div>
             <button type="button" class="mob-apply-btn dc-open-tryout-modal mob-tap" data-team-slug="{{ team.slug }}">Apply</button>
@@ -2393,14 +2393,14 @@
       <div class="mob-ov-section">
         <div class="mob-identity-eyebrow" style="margin-bottom:8px;">NEXT MATCH</div>
         <div class="mob-next-match mob-tap">
-          <div style="font-family:'Inter',sans-serif;font-size:9px;font-weight:600;letter-spacing:.09em;color:rgba(255,255,255,.28);margin-bottom:10px;">{{ match.tournament_name|upper }}</div>
+          <div style="font-family:'Inter',sans-serif;font-size:9px;font-weight:600;letter-spacing:.09em;color:rgba(255,255,255,.62);margin-bottom:10px;">{{ match.tournament_name|upper }}</div>
           <div class="mob-vs-grid">
             <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
               <div class="mob-vs-crest" style="background:#3A3A3A;">{% if team.logo_url %}<img src="{{ team.logo_url }}" alt="{{ team.name }}">{% else %}{{ team.tag|slice:":3"|upper }}{% endif %}</div>
               <span style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);">{{ team.name|truncatechars:12 }}</span>
             </div>
             <div style="text-align:center;">
-              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.35);letter-spacing:.04em;">VS</div>
+              <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:rgba(255,255,255,.62);letter-spacing:.04em;">VS</div>
               <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--team,#E2B761);font-weight:600;margin-top:4px;">TBD</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
@@ -2431,8 +2431,8 @@
               <div class="mob-journey-node" style="background:rgba(207,167,90,.22);border:1px solid rgba(207,167,90,.40);">
                 <svg width="17" height="17" fill="none" stroke="#CFA75A" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M5 5h14v6a7 7 0 01-14 0V5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">#{{ leaderboard_stats.global_rank }} Global Rank</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">{{ team.game.name }} ladder</div></div>
-              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.22);padding-top:4px;flex-shrink:0;">Now</span>
+              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">#{{ leaderboard_stats.global_rank }} Global Rank</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.62);margin-top:2px;">{{ team.game.name }} ladder</div></div>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.62);padding-top:4px;flex-shrink:0;">Now</span>
             </div>
             {% endif %}
             {% if leaderboard_stats.current_streak > 2 %}
@@ -2440,8 +2440,8 @@
               <div class="mob-journey-node" style="background:rgba(255,133,133,.22);border:1px solid rgba(255,133,133,.40);">
                 <svg width="17" height="17" fill="none" stroke="#FF8585" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.879 16.121A3 3 0 1012.015 11" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">{{ leaderboard_stats.current_streak }}-match win streak</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">Current tournament form</div></div>
-              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.22);padding-top:4px;flex-shrink:0;">Active</span>
+              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">{{ leaderboard_stats.current_streak }}-match win streak</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.62);margin-top:2px;">Current tournament form</div></div>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.62);padding-top:4px;flex-shrink:0;">Active</span>
             </div>
             {% endif %}
             {% for trophy in trophy_cabinet|slice:":3" %}
@@ -2449,8 +2449,8 @@
               <div class="mob-journey-node" style="background:rgba(207,167,90,.22);border:1px solid rgba(207,167,90,.40);">
                 <svg width="17" height="17" fill="none" stroke="#CFA75A" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M5 5h14v6a7 7 0 01-14 0V5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">{{ trophy.title }}</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">{{ trophy.tournament_name }}</div></div>
-              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.22);padding-top:4px;flex-shrink:0;">{{ trophy.placement }}</span>
+              <div style="flex:1;padding-top:3px;"><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);">{{ trophy.title }}</div><div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.62);margin-top:2px;">{{ trophy.tournament_name }}</div></div>
+              <span style="font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.62);padding-top:4px;flex-shrink:0;">{{ trophy.placement }}</span>
             </div>
             {% endfor %}
           </div>
@@ -2483,12 +2483,12 @@
             <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
               <div class="mob-roster-name">{{ member.display_name }}</div>
               {% if member.is_captain %}<span style="font-size:8px;font-weight:800;letter-spacing:.06em;color:#CFA75A;background:rgba(207,167,90,.15);border:1px solid rgba(207,167,90,.3);padding:1px 5px;border-radius:4px;line-height:1.6;">CAP</span>{% endif %}
-              {% if forloop.counter > roster.starting_lineup_size %}<span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.4);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:1px 5px;border-radius:4px;line-height:1.6;">SUB</span>{% endif %}
+              {% if forloop.counter > roster.starting_lineup_size %}<span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.62);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:1px 5px;border-radius:4px;line-height:1.6;">SUB</span>{% endif %}
             </div>
             <div class="mob-roster-ign">{% if member.game_passport.ign %}{{ member.game_passport.ign }}{% else %}@{{ member.username }}{% endif %}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
-            {% if member.player_role %}<span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.45);">{{ member.player_role }}</span>{% endif %}
+            {% if member.player_role %}<span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.62);">{{ member.player_role }}</span>{% endif %}
             {% if member.game_passport.rank %}<span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:rgba(207,167,90,.75);">{{ member.game_passport.rank }}</span>{% endif %}
           </div>
         </div>

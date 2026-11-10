@@ -49,12 +49,12 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 @media (prefers-reduced-motion: reduce){ .rk-fu{animation:none} [style*="rk-livedot"],[style*="rk-actpulse"]{animation:none !important} }
 
 /* ── Tier color system via data attribute ── */
-[data-tier="THE_CROWN"]  { --tc:#CFA75A; --tc-rgb:207,167,90; }
-[data-tier="LEGEND"]     { --tc:#E5902F; --tc-rgb:229,144,47; }
-[data-tier="MASTER"]     { --tc:#BF3868; --tc-rgb:191,56,104; }
-[data-tier="ELITE"]      { --tc:#3EA7FF; --tc-rgb:62,167,255; }
-[data-tier="CHALLENGER"] { --tc:#E2B761; --tc-rgb:132,112,238; }
-[data-tier="ROOKIE"]     { --tc:#94A3B8; --tc-rgb:148,163,184; }
+[data-tier="THE_CROWN"]    { --tc:var(--ol-tier-crown); --tc-rgb:var(--ol-tier-crown-rgb); }
+[data-tier="LEGEND"]       { --tc:var(--ol-tier-legend); --tc-rgb:var(--ol-tier-legend-rgb); }
+[data-tier="MASTER"]       { --tc:var(--ol-tier-master); --tc-rgb:var(--ol-tier-master-rgb); }
+[data-tier="ELITE"]        { --tc:var(--ol-tier-elite); --tc-rgb:var(--ol-tier-elite-rgb); }
+[data-tier="CHALLENGER"]   { --tc:var(--ol-tier-challenger); --tc-rgb:var(--ol-tier-challenger-rgb); }
+[data-tier="ROOKIE"]       { --tc:var(--ol-tier-rookie); --tc-rgb:var(--ol-tier-rookie-rgb); }
 .tier-badge { display:inline-block; background:rgba(var(--tc-rgb),.12); border:1px solid rgba(var(--tc-rgb),.28); color:var(--tc); font-size:10px; font-weight:700; letter-spacing:.05em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
 .tier-bar { background:var(--tc); }
 
@@ -106,6 +106,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 .tier-pill.active .tp-lbl { font-weight:600; }
 
 /* ── Tier chip (mobile) ── */
+@media (pointer:coarse){ .tier-chip { height:44px !important; padding:0 16px !important; display:inline-flex; align-items:center; } .rk-fulltable { min-height:44px; } }
 .tier-chip { height:26px; padding:0 11px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:#9AA1B0; font-size:11px; font-weight:600; white-space:nowrap; flex-shrink:0; cursor:pointer; }
 
 /* ── Mobile game button ── */
@@ -157,7 +158,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
 #rkScrollSentinel { height:1px; width:100%; }
 .rk-loading-more { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:#9AA1B0; font-size:12px; font-weight:600; }
 @keyframes rk-dots { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
-.rk-ldot { width:5px; height:5px; border-radius:50%; background:#7A8399; display:inline-block; }
+.rk-ldot { width:5px; height:5px; border-radius:50%; background:#9AA1B0; display:inline-block; }
 .rk-ldot:nth-child(1) { animation:rk-dots 1.2s infinite .0s; }
 .rk-ldot:nth-child(2) { animation:rk-dots 1.2s infinite .2s; }
 .rk-ldot:nth-child(3) { animation:rk-dots 1.2s infinite .4s; }
@@ -228,7 +229,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
         <div style="display:flex;align-items:center;gap:5px;">
-          <span style="width:5px;height:5px;border-radius:50%;background:{% if active_season %}#FF3B5C{% else %}#5A6273{% endif %};{% if active_season %}animation:rk-livedot 1.4s ease-in-out infinite;{% endif %}"></span>
+          <span style="width:5px;height:5px;border-radius:50%;background:{% if active_season %}#FF3B5C{% else %}#8E95A5{% endif %};{% if active_season %}animation:rk-livedot 1.4s ease-in-out infinite;{% endif %}"></span>
           <span id="rkSeasonLabel" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8A92A6;">{% if active_season %}{{ active_season.name }}{% else %}Off-Season{% endif %}</span>
         </div>
         <span id="rkCd" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#CFA75A;">—</span>
@@ -284,9 +285,9 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         <div style="width:24px;height:24px;border-radius:6px;overflow:hidden;background:{{ g.color }}10;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid {{ g.color }}20;">
           {% if g.icon_url %}
           <img src="{{ g.icon_url }}" class="gicon-img" alt="{{ g.display_name }}">
-          <span class="gicon-fb" style="display:none;font-size:8px;color:{{ g.color }};">{{ g.short_code }}</span>
+          <span class="gicon-fb" style="display:none;font-size:8px;color:color-mix(in srgb,{{ g.color }} 55%,#F6F1E7);">{{ g.short_code }}</span>
           {% else %}
-          <span class="gicon-fb" style="font-size:8px;color:{{ g.color }};">{{ g.short_code }}</span>
+          <span class="gicon-fb" style="font-size:8px;color:color-mix(in srgb,{{ g.color }} 55%,#F6F1E7);">{{ g.short_code }}</span>
           {% endif %}
         </div>
         <span class="sg-name">{{ g.display_name }}</span>
@@ -334,9 +335,9 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           <div class="gm-box" style="background:{{ g.color }}15;border:1.5px solid {{ g.color }}28;">
             {% if g.icon_url %}
             <img src="{{ g.icon_url }}" class="gicon-img" alt="{{ g.display_name }}">
-            <span class="gicon-fb" style="display:none;font-size:11px;color:{{ g.color }};">{{ g.short_code }}</span>
+            <span class="gicon-fb" style="display:none;font-size:11px;color:color-mix(in srgb,{{ g.color }} 55%,#F6F1E7);">{{ g.short_code }}</span>
             {% else %}
-            <span class="gicon-fb" style="font-size:11px;color:{{ g.color }};">{{ g.short_code }}</span>
+            <span class="gicon-fb" style="font-size:11px;color:color-mix(in srgb,{{ g.color }} 55%,#F6F1E7);">{{ g.short_code }}</span>
             {% endif %}
           </div>
           <span class="gm-lbl">{{ g.short_code }}</span>
@@ -398,7 +399,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         </div>
 
         <!-- Desktop table -->
-        <div class="rk-dsk" style="background:#11151E;">
+        <div class="rk-dsk" style="background:#17181A;">
           <table class="tbl">
             <thead>
               <tr>
@@ -414,7 +415,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
               {% for entry in entries %}
               <tr class="rk-entry{% if entry.is_user_team %} rk-your-row{% endif %}" data-tier="{{ entry.tier }}" data-name="{{ entry.team_name|lower }}" data-tag="{{ entry.team_tag|lower }}" data-org="{{ entry.organization_name|lower }}" data-game="{{ entry.game_name }}" data-url="{{ entry.team_url }}" data-rank="{{ entry.rank }}" data-score="{{ entry.score }}" data-activity="{{ entry.activity_score }}" style="background:{% if entry.rank == 1 %}rgba(207,167,90,.04){% else %}transparent{% endif %};">
                 <td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="{{ entry.team_url }}"></div></td>
-                <td style="padding-left:8px;"><span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#4D5566{% endif %};">{{ entry.rank }}</span></td>
+                <td style="padding-left:8px;"><span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#8E95A5{% endif %};">{{ entry.rank }}</span></td>
                 <td>
                   <div style="display:flex;align-items:center;gap:11px;">
                     <div class="team-av" style="width:36px;height:36px;">
@@ -428,7 +429,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                       </div>
                       <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
                         <span style="font-size:11px;color:#8A92A6;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}</span>
-                        {% if entry.game_short %}<span class="rk-glabel" style="display:flex;align-items:center;gap:4px;"><span style="color:#8E95A5;font-size:10px;">·</span><span style="font-size:11px;font-weight:600;color:{{ entry.game_color }};">{{ entry.game_short }}</span></span>{% endif %}
+                        {% if entry.game_short %}<span class="rk-glabel" style="display:flex;align-items:center;gap:4px;"><span style="color:#8E95A5;font-size:10px;">·</span><span style="font-size:11px;font-weight:600;color:color-mix(in srgb,{{ entry.game_color }} 55%,#F6F1E7);">{{ entry.game_short }}</span></span>{% endif %}
                       </div>
                     </div>
                   </div>
@@ -440,8 +441,8 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                 </td>
                 <td style="text-align:right;padding-right:18px;" class="col-act">
                   <div style="display:inline-flex;align-items:center;gap:6px;">
-                    <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};display:inline-block;flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#6B7385{% endif %};">{{ entry.activity_score }}%</span>
+                    <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#8E95A5{% endif %};display:inline-block;flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#9AA1B0{% endif %};">{{ entry.activity_score }}%</span>
                   </div>
                 </td>
               </tr>
@@ -451,23 +452,23 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         </div>
 
         <!-- Mobile list -->
-        <div class="rk-mob" style="background:#11151E;">
+        <div class="rk-mob" style="background:#17181A;">
           <div id="rkMobBody">
             {% for entry in entries %}
             <div class="m-row rk-entry-m" data-tier="{{ entry.tier }}" data-name="{{ entry.team_name|lower }}" data-tag="{{ entry.team_tag|lower }}" data-org="{{ entry.organization_name|lower }}" data-game="{{ entry.game_name }}" data-url="{{ entry.team_url }}">
-              <span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#3D4558{% endif %};width:28px;text-align:right;flex-shrink:0;">{{ entry.rank }}</span>
+              <span class="rk-rank" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:{% if entry.rank == 1 %}#CFA75A{% elif entry.rank == 2 %}#A8A8B5{% elif entry.rank == 3 %}#B07238{% else %}#8E95A5{% endif %};width:28px;text-align:right;flex-shrink:0;">{{ entry.rank }}</span>
               <div class="team-av team-av-round" style="width:42px;height:42px;">
                 {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" class="gicon-img" alt=""><span style="display:none;">{{ entry.team_name|first|upper }}</span>{% else %}{{ entry.team_name|first|upper }}{% endif %}
               </div>
               <div style="flex:1;min-width:0;">
                 <div style="font-size:15px;font-weight:600;color:#F4F6FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ entry.team_name }} {% if entry.team_tag %}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7F8798;">[{{ entry.team_tag }}]</span>{% endif %}</div>
-                <div style="font-size:12px;color:#9AA1B0;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}{% if entry.game_short %} · <span style="color:{{ entry.game_color }};" class="rk-glabel-m">{{ entry.game_short }}</span>{% endif %}</div>
+                <div style="font-size:12px;color:#9AA1B0;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{% if entry.organization_name and not entry.is_independent %}{{ entry.organization_name }}{% else %}Independent{% endif %}{% if entry.game_short %} · <span style="color:color-mix(in srgb,{{ entry.game_color }} 55%,#F6F1E7);" class="rk-glabel-m">{{ entry.game_short }}</span>{% endif %}</div>
               </div>
               <div style="text-align:right;flex-shrink:0;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#F4F6FA;">{{ entry.score|intcomma }}</div>
                 <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7F8798;margin-top:2px;">{{ brand.features.ranking_points_short }}</div>
               </div>
-              <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
+              <span style="width:7px;height:7px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#8E95A5{% endif %};flex-shrink:0;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
               <i class="fa-solid fa-chevron-right" style="color:#232936;font-size:13px;flex-shrink:0;"></i>
             </div>
             {% endfor %}
@@ -503,7 +504,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         <div class="rk-fu" style="margin-bottom:24px;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.25),0 1px 3px rgba(0,0,0,.20);">
           <div style="padding:14px 18px 12px;background:{{ section.color }}09;border-bottom:1px solid rgba(255,255,255,.06);border-left:3px solid {{ section.color }};display:flex;align-items:center;gap:12px;">
             <div style="width:32px;height:32px;border-radius:9px;overflow:hidden;background:{{ section.color }}18;display:flex;align-items:center;justify-content:center;border:1px solid {{ section.color }}30;flex-shrink:0;">
-              {% if section.icon_url %}<img src="{{ section.icon_url }}" class="gicon-img" alt="{{ section.display_name }}"><span class="gicon-fb" style="display:none;font-size:10px;color:{{ section.color }};">{{ section.game_id }}</span>{% else %}<span class="gicon-fb" style="font-size:10px;color:{{ section.color }};">{{ section.game_id }}</span>{% endif %}
+              {% if section.icon_url %}<img src="{{ section.icon_url }}" class="gicon-img" alt="{{ section.display_name }}"><span class="gicon-fb" style="display:none;font-size:10px;color:color-mix(in srgb,{{ section.color }} 55%,#F6F1E7);">{{ section.game_id }}</span>{% else %}<span class="gicon-fb" style="font-size:10px;color:color-mix(in srgb,{{ section.color }} 55%,#F6F1E7);">{{ section.game_id }}</span>{% endif %}
             </div>
             <div style="flex:1;min-width:0;">
               <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#F4F6FA;letter-spacing:-.01em;">{{ section.display_name }}</div>
@@ -513,12 +514,12 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
               Full table <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i>
             </button>
           </div>
-          <div style="background:#11151E;">
+          <div style="background:#17181A;">
             <table class="tbl">
               <tbody>
                 {% for entry in section.entries %}
                 <tr class="rk-secrow" data-tier="{{ entry.tier }}" data-url="{{ entry.team_url }}">
-                  <td style="width:44px;padding-left:16px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:{% if forloop.counter == 1 %}#CFA75A{% elif forloop.counter == 2 %}#A8A8B5{% elif forloop.counter == 3 %}#B07238{% else %}#3D4558{% endif %};">{{ forloop.counter }}</span></td>
+                  <td style="width:44px;padding-left:16px;"><span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:{% if forloop.counter == 1 %}#CFA75A{% elif forloop.counter == 2 %}#A8A8B5{% elif forloop.counter == 3 %}#B07238{% else %}#8E95A5{% endif %};">{{ forloop.counter }}</span></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:11px;">
                       <div class="team-av" style="width:32px;height:32px;">
@@ -537,8 +538,8 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
                   </td>
                   <td style="width:72px;text-align:right;padding-right:16px;" class="col-act">
                     <div style="display:inline-flex;align-items:center;gap:5px;">
-                      <span style="width:6px;height:6px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};display:inline-block;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
-                      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#5A6273{% endif %};">{{ entry.activity_score }}%</span>
+                      <span style="width:6px;height:6px;border-radius:50%;background:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#8E95A5{% endif %};display:inline-block;{% if entry.activity_score >= 80 %}animation:rk-actpulse 1.4s ease-in-out infinite;{% endif %}"></span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{% if entry.activity_score >= 80 %}#2ECC71{% elif entry.activity_score >= 40 %}#FFB020{% else %}#8E95A5{% endif %};">{{ entry.activity_score }}%</span>
                     </div>
                   </td>
                 </tr>
@@ -620,9 +621,9 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
   function $$(s,p){ return Array.from((p||document).querySelectorAll(s)); }
   function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
   function fmt(n){ return (n||0).toLocaleString(); }
-  function rankColor(r){ return r===1?'#CFA75A':r===2?'#A8A8B5':r===3?'#B07238':'#3D4558'; }
+  function rankColor(r){ return r===1?'#CFA75A':r===2?'#A8A8B5':r===3?'#B07238':'#8E95A5'; }
   function tierLabel(t){ return t==='THE_CROWN'?'THE CROWN':(t||'').replace(/_/g,' '); }
-  function actColor(a){ return a>=80?'#2ECC71':a>=40?'#FFB020':'#5A6273'; }
+  function actColor(a){ return a>=80?'#2ECC71':a>=40?'#FFB020':'#8E95A5'; }
 
   function match(el){
     var mg = game==='all' || el.dataset.game===game;
@@ -663,7 +664,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       if(b.classList.contains('gm-btn')){
         var box=b.querySelector('.gm-box'), lbl=b.querySelector('.gm-lbl'), gc=b.dataset.gc||'#A9B1C2';
         if(box) box.style.borderColor = a ? gc : (b.dataset.gf==='all' ? 'rgba(169,177,194,.20)' : gc+'28');
-        if(lbl) lbl.style.color = a ? '#F4F6FA' : '#5A6273';
+        if(lbl) lbl.style.color = a ? '#F4F6FA' : '#8E95A5';
       }
     });
     var hdr=document.getElementById('rkSecHdr'), ic=document.getElementById('rkSecIcon');
@@ -704,10 +705,10 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
         if(a){
           if(tf==='all'){ b.style.background='rgba(255,255,255,.10)'; b.style.borderColor='rgba(255,255,255,.22)'; b.style.color='#F4F6FA'; }
           else { b.style.background=tc+'20'; b.style.borderColor=tc+'50'; b.style.color=tc; }
-        } else { b.style.background='rgba(255,255,255,.04)'; b.style.borderColor='rgba(255,255,255,.08)'; b.style.color='#6B7385'; }
+        } else { b.style.background='rgba(255,255,255,.04)'; b.style.borderColor='rgba(255,255,255,.08)'; b.style.color='#9AA1B0'; }
       } else {
         var lbl=b.querySelector('.tp-lbl'), dot=b.querySelector('.tp-dot');
-        if(lbl){ lbl.style.color = a ? (tf==='all'?'#F4F6FA':(dot?dot.style.background:'#F4F6FA')) : '#6B7385'; }
+        if(lbl){ lbl.style.color = a ? (tf==='all'?'#F4F6FA':(dot?dot.style.background:'#F4F6FA')) : '#9AA1B0'; }
       }
     });
     apply();
@@ -737,7 +738,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
     if(d.tag){ tagEl.textContent='['+d.tag+']'; tagEl.style.display=''; } else { tagEl.style.display='none'; }
     var tb=document.getElementById('rkmTier'); tb.dataset.tier=d.tier; tb.textContent=tierLabel(d.tier);
     var gm=document.getElementById('rkmGame');
-    if(d.game_short){ gm.textContent=d.game; gm.style.color=d.game_color; gm.style.display=''; } else { gm.style.display='none'; }
+    if(d.game_short){ gm.textContent=d.game; gm.style.color='color-mix(in srgb,'+d.game_color+' 55%,#F6F1E7)'; gm.style.display=''; } else { gm.style.display='none'; }
     document.getElementById('rkmOrg').textContent = (d.org && !d.independent) ? d.org : 'Independent organization';
     document.getElementById('rkmRank').textContent='#'+d.rank;
     document.getElementById('rkmCp').textContent=fmt(d.score);
@@ -748,7 +749,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       rl.innerHTML=''; rl.style.gap='0';
       d.roster.slice(0,6).forEach(function(mb,i){
         var av=document.createElement('div');
-        av.style.cssText='width:34px;height:34px;border-radius:50%;border:2px solid #11151E;margin-left:'+(i?-8:0)+'px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);font-size:11px;font-weight:700;color:#C2C8D4;flex-shrink:0;';
+        av.style.cssText='width:34px;height:34px;border-radius:50%;border:2px solid #17181A;margin-left:'+(i?-8:0)+'px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);font-size:11px;font-weight:700;color:#C2C8D4;flex-shrink:0;';
         av.title=mb.name||'';
         var mi=(mb.name||'?').charAt(0).toUpperCase();
         if(mb.avatar_url){ var ai=document.createElement('img'); ai.src=mb.avatar_url; ai.style.cssText='width:100%;height:100%;object-fit:cover;'; ai.addEventListener('error', function(){ av.textContent=mi; }); av.appendChild(ai); }
@@ -958,7 +959,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
       active=!active;
       tog.style.background = active ? 'rgba(226,183,97,.20)' : 'rgba(255,255,255,.04)';
       tog.style.borderColor = active ? 'rgba(226,183,97,.40)' : 'rgba(255,255,255,.07)';
-      tog.style.color = active ? '#E2B761' : '#5A6273';
+      tog.style.color = active ? '#E2B761' : '#8E95A5';
       $$('.rk-cmp-check').forEach(function(c){ c.style.display = active ? 'flex' : 'none'; });
       if(!active){
         $$('.rk-cmp-check.checked').forEach(function(c){c.classList.remove('checked');});
@@ -1052,7 +1053,7 @@ body { color:#F4F6FA; font-family:'Inter',system-ui,-apple-system,sans-serif; -w
           var db=document.getElementById('rkDeskBody'), mb=document.getElementById('rkMobBody');
           d.entries.forEach(function(e){
             if(db){ var tr=document.createElement('tr'); tr.className='rk-entry'; tr.dataset.tier=e.tier; tr.dataset.name=(e.team_name||'').toLowerCase(); tr.dataset.tag=(e.team_tag||'').toLowerCase(); tr.dataset.org=(e.organization_name||'').toLowerCase(); tr.dataset.game=e.game_name||''; tr.dataset.url=e.team_url; tr.dataset.rank=e.rank; tr.dataset.score=e.score; tr.dataset.activity=e.activity_score;
-              tr.innerHTML='<td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="'+esc(e.team_url)+'"></div></td><td style="padding-left:8px;"><span class="rk-rank" style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;color:#8E95A5;">'+e.rank+'</span></td><td><div style="display:flex;align-items:center;gap:11px;"><div class="team-av" style="width:36px;height:36px;">'+(e.team_logo_url?'<img src="'+esc(e.team_logo_url)+'" class="gicon-img" alt="">':'')+'<span style="'+(e.team_logo_url?'display:none;':'')+'font-family:Sora,sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">'+esc((e.team_name||'?').charAt(0).toUpperCase())+'</span></div><div style="min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;font-weight:600;color:#E8ECF4;">'+esc(e.team_name)+'</span>'+(e.team_tag?'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#9AA1B0;">['+esc(e.team_tag)+']</span>':'')+'</div><div style="font-size:11px;color:#8A92A6;margin-top:3px;">'+(e.organization_name&&!e.is_independent?esc(e.organization_name):'Independent')+'</div></div></div></td><td class="col-tier"><span class="tier-badge" data-tier="'+esc(e.tier)+'">'+(e.tier==='THE_CROWN'?'THE CROWN':esc(e.tier))+'</span></td><td><div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">'+e.score.toLocaleString()+' <span style="font-size:10px;color:#8E95A5;">CP</span></div></td><td style="text-align:right;padding-right:18px;" class="col-act"><div style="display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#5A6273')+';display:inline-block;"></span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:600;color:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#6B7385')+';">'+e.activity_score+'%</span></div></td>';
+              tr.innerHTML='<td style="padding-left:12px;padding-right:0;" class="col-tier"><div class="rk-cmp-check" data-cmp-url="'+esc(e.team_url)+'"></div></td><td style="padding-left:8px;"><span class="rk-rank" style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;color:#8E95A5;">'+e.rank+'</span></td><td><div style="display:flex;align-items:center;gap:11px;"><div class="team-av" style="width:36px;height:36px;">'+(e.team_logo_url?'<img src="'+esc(e.team_logo_url)+'" class="gicon-img" alt="">':'')+'<span style="'+(e.team_logo_url?'display:none;':'')+'font-family:Sora,sans-serif;font-weight:700;font-size:13px;color:#8A92A6;">'+esc((e.team_name||'?').charAt(0).toUpperCase())+'</span></div><div style="min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;font-weight:600;color:#E8ECF4;">'+esc(e.team_name)+'</span>'+(e.team_tag?'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#9AA1B0;">['+esc(e.team_tag)+']</span>':'')+'</div><div style="font-size:11px;color:#8A92A6;margin-top:3px;">'+(e.organization_name&&!e.is_independent?esc(e.organization_name):'Independent')+'</div></div></div></td><td class="col-tier"><span class="tier-badge" data-tier="'+esc(e.tier)+'">'+(e.tier==='THE_CROWN'?'THE CROWN':esc(e.tier))+'</span></td><td><div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:#E8ECF4;margin-bottom:5px;">'+e.score.toLocaleString()+' <span style="font-size:10px;color:#8E95A5;">CP</span></div></td><td style="text-align:right;padding-right:18px;" class="col-act"><div style="display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#8E95A5')+';display:inline-block;"></span><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:600;color:'+(e.activity_score>=80?'#2ECC71':e.activity_score>=40?'#FFB020':'#9AA1B0')+';">'+e.activity_score+'%</span></div></td>';
               tr.addEventListener('click', function(){ openTeam(this.dataset.url); });
               db.appendChild(tr);
             }

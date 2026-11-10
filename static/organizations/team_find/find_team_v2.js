@@ -87,7 +87,8 @@
     tabs.forEach(tab => {
       const active = tab.dataset.modeTab === state.mode;
       tab.classList.toggle("active", active);
-      tab.setAttribute("aria-selected", active ? "true" : "false");
+      // aria-selected is valid only on role="tab"; the plain "Browse" buttons use aria-pressed instead
+      tab.setAttribute(tab.getAttribute("role") === "tab" ? "aria-selected" : "aria-pressed", active ? "true" : "false");
     });
     panels.forEach(p => { p.hidden = p.dataset.resultPanel !== state.mode; });
     searchInputs.forEach(i => { if (i.value !== state.q) i.value = state.q || ""; });

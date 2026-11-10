@@ -43,7 +43,7 @@ def _build_initials(label: str, fallback: str = 'DC') -> str:
 
 
 def _avatar_bg_color(seed: str) -> str:
-    palette = ['#1f2937', '#0f4c81', '#0b6e4f', '#7c2d12', '#5b21b6', '#065f46']
+    palette = ['#6B5428', '#3A4A5C', '#4A3A5C', '#2F4F46', '#5C3A3A', '#3F3F3F']
     digest = hashlib.sha256((seed or 'deltacrown').encode('utf-8')).hexdigest()
     return palette[int(digest[:2], 16) % len(palette)]
 
@@ -56,7 +56,7 @@ def _fallback_avatar_data_uri(display_name: str, username: str = '') -> str:
         '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">'
         f'<rect width="96" height="96" fill="{bg}"/>'
         f'<text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle" '
-        'fill="#ffffff" font-family="Arial, sans-serif" font-size="34" font-weight="700">'
+        'fill="#F6F1E7" font-family="Arial, sans-serif" font-size="34" font-weight="700">'
         f'{initials}</text>'
         '</svg>'
     )

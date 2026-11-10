@@ -18,6 +18,7 @@ Architecture:
 - Returns safe primitives/JSON only
 - Backward compatible with existing URLs (redirects)
 """
+from apps.user_profile.services.career_tab_service import static_if_exists
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -902,8 +903,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                     'rank_points': passport.rank_points,
                     'peak_rank': passport.peak_rank,
                     'game_name': primary_game.display_name,
-                    'logo_url': primary_game.logo.url if primary_game.logo else f"/static/images/games/{primary_game.slug}-logo.png",
-                    'bg_url': primary_game.banner.url if primary_game.banner else f"/static/images/games/{primary_game.slug}-banner.jpg",
+                    'logo_url': primary_game.logo.url if primary_game.logo else static_if_exists(f"images/games/{primary_game.slug}-logo.png"),
+                    'bg_url': primary_game.banner.url if primary_game.banner else static_if_exists(f"images/games/{primary_game.slug}-banner.jpg"),
                     'rank_icon_url': passport.rank_image.url if hasattr(passport, 'rank_image') and passport.rank_image else f"/static/images/ranks/{primary_game.slug}/tier-{passport.rank_tier or 1}.png",
                     'percentile': getattr(passport, 'percentile', None),
                 }
@@ -922,7 +923,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 available_games.append({
                     'slug': g.slug,
                     'name': g.display_name,
-                    'icon_url': game_item.get('game_icon_url') or (g.icon.url if g.icon else f"/static/images/games/{g.slug}-logo.png"),
+                    'icon_url': game_item.get('game_icon_url') or (g.icon.url if g.icon else static_if_exists(f"images/games/{g.slug}-logo.png")),
                     'is_primary': game_item.get('is_primary', False),  # NEW: for PRIMARY badge
                 })
             
@@ -1001,8 +1002,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 'game': {
                     'slug': primary_game.slug,
                     'name': primary_game.display_name,
-                    'logo_url': passport_dict['logo_url'] if passport_dict else f"/static/images/games/{primary_game.slug}-logo.png",
-                    'banner_url': passport_dict['bg_url'] if passport_dict else f"/static/images/games/{primary_game.slug}-banner.jpg",
+                    'logo_url': passport_dict['logo_url'] if passport_dict else static_if_exists(f"images/games/{primary_game.slug}-logo.png"),
+                    'banner_url': passport_dict['bg_url'] if passport_dict else static_if_exists(f"images/games/{primary_game.slug}-banner.jpg"),
                 },
                 'identity_slots': identity_slots,
                 'attributes_sidebar': attributes_sidebar,

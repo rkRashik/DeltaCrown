@@ -77,7 +77,8 @@ class TestPublicProfile:
         html = _profile(client, user.username).content.decode()
         assert "fetch(url, {" not in html and "Follow error:" not in html
         js = _read("static/siteui/js/follow.js")
-        assert "function followToast" in js and "window.showToast({ type: type, message: message })" in js
+        assert "function followToast" in js and "window.showToast(payload, type)" in js
+        assert "showToast.length" not in js          # no function.length contract
         assert "showToast('" not in js.replace("followToast('", "")
 
     def test_initials_avatars_use_muted_brand_tones(self):
@@ -125,6 +126,29 @@ class TestPublicOrganization:
         verified = OrganizationFactory(name="Batch D Verified", is_verified=True)
         assert "Verified organization" in client.get(f"/orgs/{verified.slug}/").content.decode()
 
+    def test_working_staff_management_stays_manager_only_and_wired(self, client):
+        """What was removed had no handler or link (no id, class or href was referenced by the page script); what stays
+        is the real staff management: Invite/Edit staff, change role, remove, and the three vnext member endpoints."""
+        org = OrganizationFactory(name="Batch D Managed")
+        raw = client.get(f"/orgs/{org.slug}/").content.decode()
+        visitor_html = re.sub(r"<(?:script|style)[^>]*>.*?</(?:script|style)>", "", raw, flags=re.S)  # DOM only
+        for marker in ('id="inviteStaffBtn"', 'id="editStaffBtn"', 'id="addMemberModal"', 'id="changeRoleModal"',
+                       'id="removeMemberModal"', "Open Control Plane", "Treasury", "Pending Actions"):
+            assert marker not in visitor_html, f"manager-only marker leaked to a visitor: {marker}"
+        client.force_login(org.ceo)
+        manager_html = client.get(f"/orgs/{org.slug}/").content.decode()
+        for marker in ('id="inviteStaffBtn"', 'id="editStaffBtn"', 'id="addMemberModal"', 'id="changeRoleModal"',
+                       'id="removeMemberModal"', 'id="confirmRemoveBtn"', "/members/add/", "/role/", "/remove/",
+                       "Open Control Plane", f"/orgs/{org.slug}/control-plane/"):
+            assert marker in manager_html, f"manager control missing: {marker}"
+
+    def test_removed_placeholders_had_no_script_hooks(self):
+        """Guard for the claim above: none of the removed elements can be re-added unnoticed with a script hook."""
+        tpl = _read("templates/organizations/org/org_detail.html")
+        script = tpl[tpl.index("{% block extra_js %}"):]
+        for hook in ("mediaKit", "media-kit", "partner", "merch", "viewAllStreams", "newTeamBtn", "walletBtn", "manageAll"):
+            assert hook.lower() not in script.lower(), hook
+
     def test_org_detail_lists_streams_tab_with_a_target(self, client):
         org = OrganizationFactory(name="Batch D Streams")
         html = client.get(f"/orgs/{org.slug}/").content.decode()
@@ -138,3 +162,84 @@ class TestRankingsPresentation:
         for neon in ("#6849E5", "#0A84FF", "#8B5CF6"):
             assert neon.lower() not in tpl.lower(), neon
         assert 'Select to compare' in tpl
+
+
+@pytest.mark.django_db
+class TestPrivateProfileState:
+    def _private_user(self):
+        from apps.user_profile.models import PrivacySettings, UserProfile
+        owner = User.objects.create_user(username="batchd_private", email="bp@example.test", password="pw-12345-x")
+        profile, _ = UserProfile.objects.get_or_create(user=owner)
+        profile.bio = "Secret bio text for the owner only"
+        profile.save()
+        settings_row, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
+        settings_row.is_private_account = True
+        settings_row.visibility_preset = "PRIVATE"
+        settings_row.save()
+        return owner
+
+    def test_private_profile_shows_only_the_restricted_card(self, client):
+        owner = self._private_user()
+        html = client.get(f"/@{owner.username}/").content.decode()
+        assert "This profile is private" in html and "ol-identity" in html
+        assert "Secret bio text" not in html and "bp@example.test" not in html
+        assert "bg-gray-800" not in html and "bg-green-600" not in html  # the old slate card / green button
+
+    def test_request_button_uses_the_real_follow_endpoint(self, client):
+        owner = self._private_user()
+        visitor = User.objects.create_user(username="batchd_visitor2", email="bv@example.test", password="pw-12345-x")
+        client.force_login(visitor)
+        html = client.get(f"/@{owner.username}/").content.decode()
+        assert 'id="follow-request-btn"' in html
+        assert f"/api/profile/{owner.username}/follow/" in html
+        assert "/profiles/" not in html.split("sendFollowRequest")[-1]   # the old URL answered 404
+
+
+class TestTierPalette:
+    TIERS = ("crown", "legend", "master", "elite", "challenger", "rookie")
+
+    def _tokens(self):
+        css = _read("static/ownlobby/foundation.css")
+        out = {}
+        for tier in self.TIERS:
+            hex_ = re.search(rf"--ol-tier-{tier}:\s*(#[0-9A-Fa-f]{{6}})", css).group(1)
+            rgb = tuple(int(x) for x in re.search(rf"--ol-tier-{tier}-rgb:\s*([\d, ]+);", css).group(1).split(","))
+            out[tier] = (hex_, rgb)
+        return out
+
+    def test_every_tier_hex_matches_its_rgb_triple(self):
+        for tier, (hex_, rgb) in self._tokens().items():
+            assert tuple(int(hex_[i:i + 2], 16) for i in (1, 3, 5)) == rgb, tier
+
+    def test_tiers_are_distinct_and_readable_on_their_tinted_badge(self):
+        def lum(c):
+            f = lambda v: v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+            r, g, b = (f(x / 255) for x in c)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+        surface = (0x17, 0x18, 0x1A)
+        tokens = self._tokens()
+        assert len({h for h, _ in tokens.values()}) == len(self.TIERS)            # CHALLENGER is not saffron, MASTER is not CROWN ...
+        for tier, (_, rgb) in tokens.items():
+            badge = tuple(round(rgb[i] * 0.12 + surface[i] * 0.88) for i in range(3))
+            ratio = (max(lum(rgb), lum(badge)) + 0.05) / (min(lum(rgb), lum(badge)) + 0.05)
+            assert ratio >= 4.5, (tier, round(ratio, 2))
+
+    def test_pages_take_tier_colours_from_the_tokens_not_literals(self):
+        rankings = _read("templates/competition/leaderboards/leaderboard_global.html")
+        hub = _read("templates/organizations/hub/team_hub.html")
+        for tier in self.TIERS:
+            assert f"var(--ol-tier-{tier})" in rankings or tier in ("crown",) or f"--ol-tier-{tier}" in rankings
+            assert f"--ol-tier-{tier}" in hub
+        assert not re.search(r'\[data-tier="CHALLENGER"\]\s*\{\s*--tc:#', rankings)
+        assert "#22c55e" not in hub.split(".tier-challenger")[1].split("}")[0]   # challenger was green here, violet there
+
+
+class TestFindTeamAccessibility:
+    def test_find_team_controls_have_names_and_valid_aria(self):
+        tpl = _read("templates/organizations/teams/partials/find_team_v2.html")
+        js = _read("static/organizations/team_find/find_team_v2.js")
+        assert tpl.count('aria-label="Close') >= 2
+        for name in ('aria-label="Region"', 'aria-label="Platform"', 'aria-label="Sort by"'):
+            assert name in tpl
+        assert '<aside class="spotlight' not in tpl            # a complementary landmark nested in another landmark
+        assert 'getAttribute("role") === "tab" ? "aria-selected" : "aria-pressed"' in js

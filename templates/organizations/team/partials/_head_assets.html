@@ -1406,7 +1406,9 @@
   width:5px; height:5px; border-radius:50%; background:#4ade80;
   display:inline-block; animation: mob-rec-pulse 1.6s ease-in-out infinite;
 }
-.mob-org-link { display:flex; align-items:center; gap:5px; text-decoration:none; cursor:pointer; }
+.mob-org-link { display:flex; align-items:center; gap:5px; text-decoration:none; cursor:pointer; min-height:44px; }
+.mob-cta-ghost { min-height:44px; }
+.mob-segtab { min-height:44px; }
 .mob-org-icon {
   width:15px; height:15px; border-radius:3px; display:flex; align-items:center;
   justify-content:center; font-family:'Sora',sans-serif; font-weight:800;
@@ -1437,7 +1439,7 @@
 }
 .mob-stat-lbl {
   font-family: 'Inter', sans-serif; font-size: 9px;
-  font-weight: 600; letter-spacing: .09em; color: rgba(255,255,255,.28);
+  font-weight: 600; letter-spacing: .09em; color: rgba(255,255,255,.62);
 }
 
 /* ── Action row ── */
@@ -1466,7 +1468,7 @@
   flex: none; width: 44px; height: 44px; border-radius: 12px;
   background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.09);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  color: rgba(255,255,255,.42); cursor: pointer;
+  color: rgba(255,255,255,.62); cursor: pointer;
   display: flex; align-items: center; justify-content: center; appearance: none;
 }
 
@@ -1484,7 +1486,7 @@
 .mob-segtab {
   flex: 0 0 auto; padding: 10px 14px; background: none; border: none;
   border-bottom: 2px solid rgba(255,255,255,.08);
-  color: rgba(255,255,255,.36); font-family: 'Inter', sans-serif;
+  color: rgba(255,255,255,.66); font-family: 'Inter', sans-serif;
   font-weight: 500; font-size: 14px; letter-spacing: -.01em;
   cursor: pointer; white-space: nowrap;
   transition: color 150ms, border-color 150ms;
@@ -1509,7 +1511,7 @@
 }
 .mob-identity-eyebrow {
   font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600;
-  letter-spacing: .11em; color: rgba(255,255,255,.26);
+  letter-spacing: .11em; color: rgba(255,255,255,.62);
   text-transform: uppercase; margin-bottom: 14px;
 }
 .mob-identity-rank-row { display: flex; align-items: stretch; gap: 12px; margin-bottom: 14px; }
@@ -1519,9 +1521,9 @@
 }
 .mob-rank-lbl {
   font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
-  color: rgba(255,255,255,.28); letter-spacing: .05em; padding-bottom: 3px;
+  color: rgba(255,255,255,.62); letter-spacing: .05em; padding-bottom: 3px;
 }
-.mob-rank-context { font-family: 'Inter', sans-serif; font-size: 12px; color: rgba(255,255,255,.38); margin-top: 3px; }
+.mob-rank-context { font-family: 'Inter', sans-serif; font-size: 12px; color: rgba(255,255,255,.62); margin-top: 3px; }
 .mob-streak-badge {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 2px; padding: 10px 18px;
@@ -1540,13 +1542,13 @@
 .mob-streak-label { font-family:'Inter',sans-serif; font-size:9px; font-weight:700; letter-spacing:.08em; }
 .mob-streak-badge.is-w .mob-streak-label { color:rgba(52,211,153,.60); }
 .mob-streak-badge.is-l .mob-streak-label { color:rgba(248,113,113,.60); }
-.mob-streak-badge.is-n .mob-streak-label { color:rgba(255,255,255,.35); }
+.mob-streak-badge.is-n .mob-streak-label { color:rgba(255,255,255,.62); }
 .mob-style-chips { display:flex; gap:6px; flex-wrap:wrap; }
 .mob-style-chip { padding:4px 10px; border-radius:999px; font-family:'Inter',sans-serif; font-size:10px; font-weight:600; letter-spacing:.06em; border:1px solid; }
 
 /* Match rows */
 .mob-section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.mob-section-eyebrow { font-family:'Inter',sans-serif; font-size:9px; font-weight:600; letter-spacing:.11em; color:rgba(255,255,255,.26); text-transform:uppercase; }
+.mob-section-eyebrow { font-family:'Inter',sans-serif; font-size:9px; font-weight:600; letter-spacing:.11em; color:rgba(255,255,255,.62); text-transform:uppercase; }
 .mob-section-link { background:none; border:none; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; cursor:pointer; padding:0; text-decoration:none; }
 .mob-match-list { border-radius:16px; overflow:hidden; background:rgba(255,255,255,.022); border:1px solid rgba(255,255,255,.07); margin-bottom:20px; }
 .mob-match-row { display:flex; align-items:center; gap:10px; padding:11px 14px; text-decoration:none; color:inherit; transition:background .12s ease; -webkit-tap-highlight-color:transparent; }
@@ -1560,7 +1562,7 @@
 .mob-match-score { text-align:center; min-width:44px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; color:#fff; letter-spacing:-.01em; }
 .mob-match-info { flex:1; min-width:0; }
 .mob-match-opp { font-family:'Inter',sans-serif; font-size:12px; font-weight:600; color:rgba(255,255,255,.78); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mob-match-context { font-family:'Inter',sans-serif; font-size:10px; color:rgba(255,255,255,.28); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mob-match-context { font-family:'Inter',sans-serif; font-size:10px; color:rgba(255,255,255,.62); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .mob-match-result { flex-shrink:0; font-family:'Inter',sans-serif; font-size:10px; font-weight:700; letter-spacing:.04em; }
 .mob-match-result.win  { color:#34d399; }
 .mob-match-result.loss { color:#f87171; }
@@ -1574,15 +1576,15 @@
 .mob-roster-avatar img { width:100%; height:100%; object-fit:cover; }
 .mob-roster-info { flex:1; min-width:0; }
 .mob-roster-name { font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:rgba(255,255,255,.85); }
-.mob-roster-ign { font-family:'JetBrains Mono',monospace; font-size:10px; color:rgba(255,255,255,.35); margin-top:1px; }
+.mob-roster-ign { font-family:'JetBrains Mono',monospace; font-size:10px; color:rgba(255,255,255,.62); margin-top:1px; }
 .mob-roster-badge { font-family:'Inter',sans-serif; font-size:10px; font-weight:700; letter-spacing:.05em; flex-shrink:0; }
 
 /* Stats pane grid */
 .mob-stats-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
 .mob-stat-box { padding:12px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); }
 .mob-stat-box-val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:24px; letter-spacing:-.02em; }
-.mob-stat-box-lbl { font-family:'Inter',sans-serif; font-size:9px; font-weight:600; letter-spacing:.09em; color:rgba(255,255,255,.28); margin-top:3px; }
-.mob-pane-placeholder { text-align:center; padding:52px 0 20px; font-family:'Inter',sans-serif; font-size:13px; color:rgba(255,255,255,.18); }
+.mob-stat-box-lbl { font-family:'Inter',sans-serif; font-size:9px; font-weight:600; letter-spacing:.09em; color:rgba(255,255,255,.62); margin-top:3px; }
+.mob-pane-placeholder { text-align:center; padding:52px 0 20px; font-family:'Inter',sans-serif; font-size:13px; color:rgba(255,255,255,.62); }
 .mob-pane { padding-bottom: 24px; }
 
 /* ── v2 Form strip ── */
@@ -1591,7 +1593,7 @@
 .mob-form-pill { width:28px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; font-size:9px; font-weight:700; letter-spacing:.03em; flex-shrink:0; }
 .mob-form-pill.win  { background:rgba(52,211,153,.18); border:1px solid rgba(52,211,153,.35); color:#34d399; }
 .mob-form-pill.loss { background:rgba(255,77,94,.16);  border:1px solid rgba(255,77,94,.30);  color:#FF4D5E; }
-.mob-form-pill.draw { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.45); }
+.mob-form-pill.draw { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.62); }
 
 /* ── v2 Overview section padding ── */
 .mob-ov-section { padding:14px 16px 0; }
@@ -1600,11 +1602,11 @@
 /* ── Mission & Identity ── */
 .mob-game-logo { width:32px; height:32px; border-radius:8px; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,.5); flex-shrink:0; }
 .mob-philosophy { font-family:'Sora',sans-serif; font-weight:700; font-size:16px; letter-spacing:-.02em; color:#fff; margin-bottom:6px; }
-.mob-tagline { font-family:'Inter',sans-serif; font-size:12px; color:rgba(255,255,255,.40); line-height:1.55; margin-bottom:14px; }
+.mob-tagline { font-family:'Inter',sans-serif; font-size:12px; color:rgba(255,255,255,.62); line-height:1.55; margin-bottom:14px; }
 .mob-roles-grid { display:flex; gap:6px; margin-bottom:12px; }
 .mob-role-cell { flex:1; text-align:center; border-radius:10px; padding:7px 2px; }
 .mob-role-abbrev { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11px; }
-.mob-role-full { font-family:'Inter',sans-serif; font-size:8px; color:rgba(255,255,255,.32); margin-top:2px; }
+.mob-role-full { font-family:'Inter',sans-serif; font-size:8px; color:rgba(255,255,255,.62); margin-top:2px; }
 .mob-map-pool { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .mob-map-chip { padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); font-family:'Inter',sans-serif; font-size:10px; font-weight:500; color:rgba(255,255,255,.55); }
 
@@ -1613,9 +1615,9 @@
 .mob-op-card { border-radius:16px; background:rgba(255,255,255,.022); border:1px solid rgba(255,255,255,.07); padding:12px 14px; display:flex; align-items:center; gap:12px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 .mob-op-icon { width:38px; height:38px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
 .mob-op-badge { display:inline-block; font-family:'Inter',sans-serif; font-size:9px; font-weight:700; letter-spacing:.08em; padding:1px 7px; border-radius:999px; }
-.mob-op-status { font-family:'Inter',sans-serif; font-size:9px; font-weight:600; letter-spacing:.06em; color:rgba(255,255,255,.30); }
+.mob-op-status { font-family:'Inter',sans-serif; font-size:9px; font-weight:600; letter-spacing:.06em; color:rgba(255,255,255,.62); }
 .mob-op-name { font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:rgba(255,255,255,.82); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mob-op-meta { font-family:'Inter',sans-serif; font-size:10px; color:rgba(255,255,255,.30); margin-top:2px; }
+.mob-op-meta { font-family:'Inter',sans-serif; font-size:10px; color:rgba(255,255,255,.62); margin-top:2px; }
 .mob-progress-track { margin-top:7px; height:4px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; }
 .mob-progress-fill { height:100%; border-radius:999px; }
 @keyframes mob-prog-in { from { width:0; } }
@@ -1645,7 +1647,7 @@
 .mob-filter-row { display:flex; gap:6px; margin-bottom:14px; }
 .mob-filter-chip { padding:5px 12px; border-radius:999px; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; font-size:11px; letter-spacing:.04em; text-transform:capitalize; transition:background 160ms,color 160ms; -webkit-tap-highlight-color:transparent; }
 .mob-filter-chip.active { background:var(--team,#E2B761); color:#fff; }
-.mob-filter-chip:not(.active) { background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
+.mob-filter-chip:not(.active) { background:rgba(255,255,255,.07); color:rgba(255,255,255,.62); }
 .mob-match-row[data-result="upcoming"] .mob-match-bar { background:rgba(226,183,97,.60) !important; }
 .mob-match-row[data-result="upcoming"] .mob-match-result { color:var(--team,#E2B761) !important; }
 /* full-word result variants (when match.result is "win"/"loss" not "w"/"l") */
@@ -1657,8 +1659,8 @@
 .mob-style-info-rows { border-radius:12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); overflow:hidden; margin-top:14px; }
 .mob-style-info-row { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; }
 .mob-style-info-row:not(:last-child) { border-bottom:1px solid rgba(255,255,255,.05); }
-.mob-style-key { font-family:'Inter',sans-serif; font-size:10px; font-weight:600; letter-spacing:.07em; color:rgba(255,255,255,.32); text-transform:uppercase; }
+.mob-style-key { font-family:'Inter',sans-serif; font-size:10px; font-weight:600; letter-spacing:.07em; color:rgba(255,255,255,.62); text-transform:uppercase; }
 .mob-style-val { font-family:'Inter',sans-serif; font-size:11px; font-weight:700; color:rgba(255,255,255,.70); }
 /* Roster section label */
-.mob-roster-section-label { font-family:'Inter',sans-serif; font-size:9px; font-weight:700; letter-spacing:.10em; color:rgba(255,255,255,.25); text-transform:uppercase; padding:8px 14px 5px; }
+.mob-roster-section-label { font-family:'Inter',sans-serif; font-size:9px; font-weight:700; letter-spacing:.10em; color:rgba(255,255,255,.62); text-transform:uppercase; padding:8px 14px 5px; }
 </style>

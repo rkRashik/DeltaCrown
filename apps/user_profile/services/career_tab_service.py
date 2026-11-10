@@ -233,6 +233,15 @@ GAME_DISPLAY_CONFIG = {
 }
 
 
+
+def static_if_exists(relative_path):
+    """/static/<relative_path> when the file exists, otherwise None.
+
+    The game icon/banner "static convention" paths were returned unconditionally, so every profile of a game without
+    those files requested a missing asset (404) and rendered a broken image."""
+    return f"/static/{relative_path}" if finders.find(relative_path) else None
+
+
 class CareerTabService:
     """Service layer for Career Tab data (isolated from other profile tabs)."""
     
@@ -467,15 +476,20 @@ class CareerTabService:
         elif game.icon:
             logo_url = game.icon.url
         else:
-            # Fallback to static convention: /static/images/games/{slug}-logo.png
-            logo_url = f"/static/images/games/{game.slug}-logo.png"
+            # Static convention (/static/images/games/{slug}-logo.png), used only when the file really exists;
+            # pointing at a missing file produced a 404 on every profile of a game without those assets.
+            static_logo = f"images/games/{game.slug}-logo.png"
+            if finders.find(static_logo):
+                logo_url = f"/static/{static_logo}"
         
         bg_url = None
         if game.banner:
             bg_url = game.banner.url
         else:
-            # Fallback to static convention: /static/images/games/{slug}-banner.jpg
-            bg_url = f"/static/images/games/{game.slug}-banner.jpg"
+            # Static convention (/static/images/games/{slug}-banner.jpg), only when the file exists
+            static_bg = f"images/games/{game.slug}-banner.jpg"
+            if finders.find(static_bg):
+                bg_url = f"/static/{static_bg}"
         
         game_data = {
             'slug': game.slug,
@@ -761,7 +775,7 @@ class CareerTabService:
                 'game': game,
                 'game_slug': game.slug,
                 'game_name': game.display_name,
-                'game_icon_url': game.icon.url if game.icon else f"/static/images/games/{game.slug}-logo.png",
+                'game_icon_url': game.icon.url if game.icon else static_if_exists(f"images/games/{game.slug}-logo.png"),
                 'passport': primary_passport,
                 'is_primary': True,
                 'primary_source': primary_source  # DEBUG field
@@ -777,7 +791,7 @@ class CareerTabService:
                 'game': game,
                 'game_slug': game.slug,
                 'game_name': game.display_name,
-                'game_icon_url': game.icon.url if game.icon else f"/static/images/games/{game.slug}-logo.png",
+                'game_icon_url': game.icon.url if game.icon else static_if_exists(f"images/games/{game.slug}-logo.png"),
                 'passport': passport,
                 'is_primary': False,
                 'primary_source': None

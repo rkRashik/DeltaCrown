@@ -466,7 +466,7 @@
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
                                         <a href="{% url 'organizations:org_team_detail' organization.slug squad.team_slug %}" 
-                                           class="text-xl font-tech font-semibold text-white group-hover:text-delta-gold transition-colors">
+                                           class="inline-block py-2 text-xl font-tech font-semibold text-white group-hover:text-delta-gold transition-colors">
                                             {{ squad.team_name }}
                                         </a>
                                         <p class="text-xs text-slate-400 font-mono">{{ squad.game_label }}</p>
@@ -499,7 +499,7 @@
                                 <div class="flex items-center justify-between">
                                     <div class="text-xs text-slate-400">
                                         <a href="{% url 'organizations:org_team_detail' organization.slug squad.team_slug %}" 
-                                           class="font-semibold text-delta-gold hover:underline">
+                                           class="inline-flex items-center min-h-[44px] font-semibold text-delta-gold hover:underline">
                                             View team
                                         </a>
                                     </div>
@@ -557,7 +557,7 @@
                     </div>
 
                     <div class="glass-panel rounded-2xl overflow-hidden border border-white/10">
-                        <div class="overflow-x-auto max-h-[600px] custom-scrollbar">
+                        <div class="overflow-x-auto max-h-[600px] custom-scrollbar" role="region" aria-label="Match history table" tabindex="0">
                             <table class="w-full text-left text-sm border-collapse">
                                 <thead class="bg-delta-surface sticky top-0 z-10 border-b border-white/10 text-sm text-slate-300">
                                     <tr>

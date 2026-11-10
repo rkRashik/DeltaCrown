@@ -293,12 +293,12 @@ body::after {
 .crown-card:hover { box-shadow: 0 0 35px rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.4) !important }
 
 /* ===== TIER BADGES ===== */
-.tier-the_crown { background: rgba(255, 215, 0, .12); color: #ffd700; border: 1px solid rgba(255, 215, 0, .25) }
-.tier-legend { background: rgba(249, 115, 22, .12); color: #f97316; border: 1px solid rgba(249, 115, 22, .25) }
-.tier-master { background: rgba(216, 128, 76, .12); color: #a78bfa; border: 1px solid rgba(216, 128, 76, .25) }
-.tier-elite { background: rgba(59, 130, 246, .12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, .25) }
-.tier-challenger { background: rgba(34, 197, 94, .12); color: #22c55e; border: 1px solid rgba(34, 197, 94, .25) }
-.tier-rookie { background: rgba(156, 163, 175, .12); color: #9ca3af; border: 1px solid rgba(156, 163, 175, .25) }
+.tier-the_crown { background: rgba(var(--ol-tier-crown-rgb), .12); color: var(--ol-tier-crown); border: 1px solid rgba(var(--ol-tier-crown-rgb), .28) }
+.tier-legend { background: rgba(var(--ol-tier-legend-rgb), .12); color: var(--ol-tier-legend); border: 1px solid rgba(var(--ol-tier-legend-rgb), .28) }
+.tier-master { background: rgba(var(--ol-tier-master-rgb), .12); color: var(--ol-tier-master); border: 1px solid rgba(var(--ol-tier-master-rgb), .28) }
+.tier-elite { background: rgba(var(--ol-tier-elite-rgb), .12); color: var(--ol-tier-elite); border: 1px solid rgba(var(--ol-tier-elite-rgb), .28) }
+.tier-challenger { background: rgba(var(--ol-tier-challenger-rgb), .12); color: var(--ol-tier-challenger); border: 1px solid rgba(var(--ol-tier-challenger-rgb), .28) }
+.tier-rookie { background: rgba(var(--ol-tier-rookie-rgb), .12); color: var(--ol-tier-rookie); border: 1px solid rgba(var(--ol-tier-rookie-rgb), .28) }
 
 /* ===== ANIMATED PROGRESS BARS ===== */
 .progress-fill { width: 0%; transition: width 1.2s cubic-bezier(.22, 1, .36, 1) }
@@ -638,7 +638,7 @@ img[loading="lazy"] {
     }
     .th-tab {
         display: flex; flex-direction: column; align-items: center; gap: 3px;
-        text-decoration: none; color: #6B7385; font-size: 10px; font-weight: 500;
+        text-decoration: none; color: #9AA1B0; font-size: 10px; font-weight: 500;
         letter-spacing: -0.01em; padding: 4px;
         -webkit-tap-highlight-color: transparent; transition: color 160ms ease;
     }
@@ -1086,7 +1086,7 @@ img[loading="lazy"] {
     --m-chip: #181D27;
     --m-ink: #F4F6FA;
     --m-ink2: #A9B1C2;
-    --m-mut: #6B7385;
+    --m-mut: #9AA1B0;
     --m-blue: #0A84FF;
     --m-blue2: #2997FF;
     --m-blue3: #3FA3FF;
@@ -1127,7 +1127,7 @@ img[loading="lazy"] {
 
 /* cards */
 .dcm-card { border-radius:20px; background:var(--m-surf); box-shadow:0 0 0 1px var(--m-line); }
-.dcm-crest { display:flex; align-items:center; justify-content:center; font-family:'Sora','Space Grotesk',sans-serif; font-weight:800; color:#fff; flex:none; background:linear-gradient(135deg,#0A84FF,#D8804C); object-fit:cover; overflow:hidden; }
+.dcm-crest { display:flex; align-items:center; justify-content:center; font-family:'Sora','Space Grotesk',sans-serif; font-weight:800; color:#fff; flex:none; background:#3A3A3A; object-fit:cover; overflow:hidden; }
 .dcm-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* stats */
@@ -1153,12 +1153,12 @@ img[loading="lazy"] {
 /* tier pill */
 .dcm-tier { font-size:11px; font-weight:600; letter-spacing:.04em; }
 .dcm-tier-pill { font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 8px; border-radius:999px; }
-.dcm-t-the_crown { color:#CFA75A; background:rgba(207,167,90,0.16); }
-.dcm-t-legend    { color:#CFA75A; background:rgba(207,167,90,0.14); }
-.dcm-t-master    { color:#D85A86; background:rgba(191,56,104,0.18); }
-.dcm-t-elite     { color:#3EA7FF; background:rgba(62,167,255,0.14); }
-.dcm-t-challenger{ color:#8470EE; background:rgba(104,73,229,0.16); }
-.dcm-t-rookie    { color:#94A3B8; background:rgba(148,163,184,0.14); }
+.dcm-t-the_crown { color:var(--ol-tier-crown); background:rgba(var(--ol-tier-crown-rgb),0.16); }
+.dcm-t-legend { color:var(--ol-tier-legend); background:rgba(var(--ol-tier-legend-rgb),0.16); }
+.dcm-t-master { color:var(--ol-tier-master); background:rgba(var(--ol-tier-master-rgb),0.12); }
+.dcm-t-elite { color:var(--ol-tier-elite); background:rgba(var(--ol-tier-elite-rgb),0.16); }
+.dcm-t-challenger { color:var(--ol-tier-challenger); background:rgba(var(--ol-tier-challenger-rgb),0.16); }
+.dcm-t-rookie { color:var(--ol-tier-rookie); background:rgba(var(--ol-tier-rookie-rgb),0.16); }
 
 /* featured */
 .dcm-feat { flex:none; width:172px; scroll-snap-align:start; padding:16px; }
@@ -1184,7 +1184,7 @@ img[loading="lazy"] {
 
 /* iOS-style dynamic bottom tab bar (replaces global #dc-bottom-nav on this page) */
 .dcm-tabbar { position:fixed; bottom:0; left:0; right:0; z-index:95; display:flex; align-items:flex-end; padding:0 2px; background:linear-gradient(180deg,rgba(10,13,20,0),rgba(10,13,20,0.92)); backdrop-filter:blur(32px) saturate(200%); -webkit-backdrop-filter:blur(32px) saturate(200%); border-top:1px solid rgba(255,255,255,0.08); box-shadow:0 -20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1); }
-.dcm-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0 calc(6px + env(safe-area-inset-bottom)); color:rgba(107,115,133,1); background:none; border:none; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative; transition:color 0.2s ease; }
+.dcm-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0 calc(6px + env(safe-area-inset-bottom)); color:rgba(154,161,176,1); background:none; border:none; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative; transition:color 0.2s ease; }
 .dcm-tab span { font-size:10px; font-weight:500; letter-spacing:-0.01em; }
 .dcm-tab:active { opacity:0.6; }
 .dcm-tab.is-active { color:#0A84FF; }
@@ -1310,7 +1310,7 @@ img[loading="lazy"] {
     <div class="dcm-rank-wrap">
         {% for entry in rankings_preview|slice:":10" %}
         <a href="{{ entry.team_url|default:'#' }}" class="dcm-rank-row dcm-tap">
-            <span class="dcm-rank-num" style="color:{% if entry.rank <= 3 %}#CFA75A{% else %}#6B7385{% endif %};">{{ entry.rank }}</span>
+            <span class="dcm-rank-num" style="color:{% if entry.rank <= 3 %}#CFA75A{% else %}#9AA1B0{% endif %};">{{ entry.rank }}</span>
             <div class="dcm-crest" style="width:40px;height:40px;border-radius:12px;font-size:13px;">
                 {% if entry.team_logo_url %}<img src="{{ entry.team_logo_url }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ entry.team_tag|default:entry.team_name|truncatechars:3 }}{% endif %}
             </div>
@@ -1399,8 +1399,8 @@ img[loading="lazy"] {
             {% if stats.live_matches %}<span style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#FF3B5C;background:rgba(255,59,92,0.1);padding:5px 10px;border-radius:999px;"><span style="width:6px;height:6px;border-radius:999px;background:#FF3B5C;animation:dcmpulse 1.4s ease-in-out infinite;"></span>{{ stats.live_matches }} LIVE</span>{% endif %}
         </div>
         <div class="dcm-arena-grid">
-            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#0A84FF,#006FE6);"><i data-lucide="swords" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Showdown</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Reward matches</div></div></a>
-            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#D8804C,#3F289C);"><i data-lucide="target" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Missions</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Daily &amp; weekly</div></div></a>
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#E2B761,#C79A3E);"><i data-lucide="swords" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Showdown</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Reward matches</div></div></a>
+            <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#D8804C,#A8582B);"><i data-lucide="target" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Missions</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Daily &amp; weekly</div></div></a>
             <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#E2C588,#A07F35);"><i data-lucide="crosshair" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Bounty</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Claim rewards</div></div></a>
             <a href="{% url 'dashboard:competitive_hub' %}" class="dcm-mode dcm-tap"><div class="dcm-mode-ico" style="background:linear-gradient(135deg,#2ECC71,#13694a);"><i data-lucide="send" class="w-[19px] h-[19px]"></i></div><div style="min-width:0;"><div class="dcm-display" style="font-weight:700;font-size:14px;color:var(--m-ink);">Dropzone</div><div style="font-size:10.5px;color:var(--m-mut);white-space:nowrap;">Open lobbies</div></div></a>
         </div>
@@ -1408,7 +1408,7 @@ img[loading="lazy"] {
     </div>
 
     <div style="text-align:center;padding:26px 0 8px;">
-        <div class="dcm-mono" style="font-size:10px;letter-spacing:.1em;color:#3a4150;">WHERE CHAMPIONS RISE</div>
+        <div class="dcm-mono" style="font-size:10px;letter-spacing:.1em;color:#7F8798;">WHERE CHAMPIONS RISE</div>
     </div>
 
     {# ----- Dynamic bottom tab bar (state-driven) ----- #}
@@ -1559,7 +1559,7 @@ img[loading="lazy"] {
                                 </div>
                                 {% endif %}
                                 <div class="min-w-0">
-                                    <h3 class="font-display font-bold text-lg text-white truncate leading-tight">{{ item.team.name }}</h3>
+                                    <h2 class="font-display font-bold text-lg text-white truncate leading-tight">{{ item.team.name }}</h2>
                                     {% if item.team.tagline %}
                                     <p class="text-xs text-gray-400 italic truncate mt-0.5">"{{ item.team.tagline|truncatechars:50 }}"</p>
                                     {% endif %}
@@ -1988,7 +1988,7 @@ img[loading="lazy"] {
                                 <div class="w-14 h-14 rounded-xl ring-1 ring-white/8 bg-gradient-to-br from-dc-cyan/15 to-dc-purple/15 flex items-center justify-center text-sm font-bold text-white flex-shrink-0 group-hover:ring-dc-cyan/30 transition-all">{{ team.tag|default:team.name|truncatechars:2 }}</div>
                                 {% endif %}
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="font-bold text-white text-sm group-hover:text-dc-cyan transition-colors truncate">{{ team.name }}</h4>
+                                    <h3 class="font-bold text-white text-sm group-hover:text-dc-cyan transition-colors truncate">{{ team.name }}</h3>
                                     <p class="text-xs text-gray-500 mt-0.5">{{ team.get_game_display|default:"Unknown Game" }}</p>
                                 </div>
                                 <span class="text-[10px] font-bold bg-green-400/10 text-green-400 px-2 py-0.5 rounded-full border border-green-400/20 flex-shrink-0">OPEN</span>
@@ -3059,7 +3059,7 @@ function selectGame(slug, el) {
                                 <div class="flex items-start gap-3.5 mb-3.5">
                                     ${logo}
                                     <div class="flex-1 min-w-0">
-                                        <h4 class="font-bold text-white text-sm group-hover:text-dc-cyan transition-colors truncate">${escHtml(t.name)}</h4>
+                                        <h3 class="font-bold text-white text-sm group-hover:text-dc-cyan transition-colors truncate">${escHtml(t.name)}</h3>
                                         <p class="text-xs text-gray-500 mt-0.5">${escHtml(t.game)}</p>
                                     </div>
                                     <span class="text-[10px] font-bold bg-green-400/10 text-green-400 px-2 py-0.5 rounded-full border border-green-400/20 flex-shrink-0">OPEN</span>

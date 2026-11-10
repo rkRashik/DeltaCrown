@@ -42,14 +42,14 @@
           </div>
         </div>
 
-        <aside class="spotlight glass" id="dc-spotlight" aria-label="Featured">
+        <section class="spotlight glass" id="dc-spotlight" aria-label="Featured">
           <div class="spot-glow" id="dc-spot-glow"></div>
           <div class="spot-head">
             <span class="tag"><i class="ph-fill ph-sparkle"></i>Featured Right Now</span>
             <div class="spot-dots" id="dc-spot-dots"></div>
           </div>
           <div class="spot-stage" id="dc-spot-stage"></div>
-        </aside>
+        </section>
       </div>
 
       <div class="stat-ribbon reveal">
@@ -63,7 +63,7 @@
     </section>
 
     <div class="layout">
-      <aside class="filter-rail" aria-label="Filters">
+      <aside class="filter-rail" aria-label="Team filters">
         <div class="rail-card game-select" data-game-select>
           <div class="gs-head" data-gs-toggle>
             <span class="eyebrow"><i class="ph-fill ph-game-controller"></i>Game</span>
@@ -110,21 +110,21 @@
           <form class="filter-stack" action="{{ find_team_url }}" method="get">
             <div class="fgroup">
               <div class="fttl"><span><i class="ph ph-globe-hemisphere-west"></i>Region</span></div>
-              <select name="region" class="fselect" data-filter-control="region">
+              <select name="region" class="fselect" data-filter-control="region" aria-label="Region">
                 <option value="">Any region</option>
                 {% for region in regions %}<option value="{{ region }}" {% if region == region_filter %}selected{% endif %}>{{ region }}</option>{% endfor %}
               </select>
             </div>
             <div class="fgroup">
               <div class="fttl"><span><i class="ph ph-devices"></i>Platform</span></div>
-              <select name="platform" class="fselect" data-filter-control="platform">
+              <select name="platform" class="fselect" data-filter-control="platform" aria-label="Platform">
                 <option value="">Any platform</option>
                 {% for platform in platforms %}<option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>{% endfor %}
               </select>
             </div>
             <div class="fgroup">
               <div class="fttl"><span><i class="ph ph-arrows-down-up"></i>Sort</span></div>
-              <select name="sort" class="fselect" data-filter-control="sort">
+              <select name="sort" class="fselect" data-filter-control="sort" aria-label="Sort by">
                 <option value="match" data-match-sort {% if sort_by == 'match' %}selected{% endif %}>Best Match</option>
                 <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
                 <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option>
@@ -351,7 +351,7 @@
         </div>
         <div class="crosspost">
           <div class="cp-eyebrow"><i class="ph-fill ph-broadcast"></i> Community Cross-Post</div>
-          <h4>Reach beyond the grounds</h4>
+          <h2>Reach beyond the grounds</h2>
           <p>Recruitment posts can mirror to the Community feed — same identity, game and role, with one-tap Apply.</p>
           <button type="button" class="btn btn-violet btn-sm btn-block" data-open-post-modal><i class="ph-bold ph-broadcast"></i>Post &amp; Cross-Share</button>
         </div>
@@ -392,7 +392,7 @@
   <div class="drawer-overlay" data-drawer-overlay></div>
   <aside class="drawer" data-drawer aria-label="Quick view">
     <div class="drawer-head"><span class="dt"><i class="ph-fill ph-identification-badge"></i>Quick View</span>
-      <button type="button" class="icon-btn" data-close-drawer><i class="ph-bold ph-x"></i></button></div>
+      <button type="button" class="icon-btn" data-close-drawer aria-label="Close quick view"><i class="ph-bold ph-x" aria-hidden="true"></i></button></div>
     <div class="drawer-body no-bar" data-drawer-body></div>
   </aside>
 
@@ -525,18 +525,18 @@
 
   <!-- ============ MOBILE FILTER ============ -->
   <div class="mfilter-overlay" data-mobile-filter-overlay></div>
-  <aside class="mfilter" data-mobile-filter aria-label="Filters">
+  <aside class="mfilter" data-mobile-filter aria-label="Filters (mobile)">
     <div class="mfilter-head"><span class="filter-head" style="margin:0"><span class="ttl"><i class="ph-bold ph-sliders-horizontal"></i>Filters</span></span>
-      <button type="button" class="icon-btn" data-close-mobile-filter><i class="ph-bold ph-x"></i></button></div>
+      <button type="button" class="icon-btn" data-close-mobile-filter aria-label="Close filters"><i class="ph-bold ph-x" aria-hidden="true"></i></button></div>
     <div class="mfilter-body no-bar">
       <label class="search-wrap" style="margin-bottom:16px"><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="Search…" data-find-search></label>
       <form class="filter-stack" action="{{ find_team_url }}" method="get">
         <div class="fgroup nopad"><div class="fttl"><span><i class="ph ph-globe-hemisphere-west"></i>Region</span></div>
-          <select name="region" class="fselect" data-filter-control="region"><option value="">Any region</option>{% for region in regions %}<option value="{{ region }}" {% if region == region_filter %}selected{% endif %}>{{ region }}</option>{% endfor %}</select></div>
+          <select name="region" class="fselect" data-filter-control="region" aria-label="Region"><option value="">Any region</option>{% for region in regions %}<option value="{{ region }}" {% if region == region_filter %}selected{% endif %}>{{ region }}</option>{% endfor %}</select></div>
         <div class="fgroup"><div class="fttl"><span><i class="ph ph-devices"></i>Platform</span></div>
-          <select name="platform" class="fselect" data-filter-control="platform"><option value="">Any platform</option>{% for platform in platforms %}<option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>{% endfor %}</select></div>
+          <select name="platform" class="fselect" data-filter-control="platform" aria-label="Platform"><option value="">Any platform</option>{% for platform in platforms %}<option value="{{ platform }}" {% if platform == platform_filter %}selected{% endif %}>{{ platform }}</option>{% endfor %}</select></div>
         <div class="fgroup"><div class="fttl"><span><i class="ph ph-arrows-down-up"></i>Sort</span></div>
-          <select name="sort" class="fselect" data-filter-control="sort"><option value="match" {% if sort_by == 'match' %}selected{% endif %}>Best Match</option><option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option><option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option><option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option></select></div>
+          <select name="sort" class="fselect" data-filter-control="sort" aria-label="Sort by"><option value="match" {% if sort_by == 'match' %}selected{% endif %}>Best Match</option><option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option><option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A–Z</option><option value="members" {% if sort_by == 'members' %}selected{% endif %}>Most members</option></select></div>
         <div data-filter-advanced-m style="margin-top:16px"></div>
       </form>
     </div>

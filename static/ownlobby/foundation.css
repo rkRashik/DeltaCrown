@@ -268,6 +268,18 @@ body .ol-footer-legacy { background-color: var(--ol-canvas); }
 .ol-input, .ol-select, .ol-textarea { margin: 0; box-sizing: border-box; }
 .ol-input[type="search"] { -webkit-appearance: none; appearance: none; }
 
+/* Competitive tiers: one palette for every page that shows a tier. Each colour has its RGB triple (for tinted
+   backgrounds) next to it so the two cannot drift apart, and each reads >= 4.5:1 on a 12% tinted badge over the
+   surface. Tier colours carry meaning, so they are not part of the saffron/ember accent. */
+:root {
+  --ol-tier-crown: #CFA75A;      --ol-tier-crown-rgb: 207, 167, 90;
+  --ol-tier-legend: #E5902F;     --ol-tier-legend-rgb: 229, 144, 47;
+  --ol-tier-master: #E4608E;     --ol-tier-master-rgb: 228, 96, 142;
+  --ol-tier-elite: #3EA7FF;      --ol-tier-elite-rgb: 62, 167, 255;
+  --ol-tier-challenger: #9C8CFF; --ol-tier-challenger-rgb: 156, 140, 255;
+  --ol-tier-rookie: #94A3B8;     --ol-tier-rookie-rgb: 148, 163, 184;
+}
+
 /* =====================================================================
    Tournament page family (Sprint 1 / Batch C): detail, bracket, results, leaderboard, match, groups, spectator.
    One accent (saffron) for actions; colour only for status. Legacy Tailwind utilities on these templates are
