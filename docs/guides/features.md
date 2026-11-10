@@ -1,12 +1,14 @@
 # Product features
 
+Purpose: what each product area does and how it behaves, as implemented in source. For how it is built see [architecture](../architecture/overview.md); for the tournament internals see [tournaments](../architecture/tournaments.md).
+
 ## Product direction
 
 OwnLobby is a connected esports ecosystem, not only a bracket tool: tournaments and match operations, teams and organizations, player profiles and Game Passports, Ranking Points rankings, a closed-loop Coins utility currency (not a financial asset), team recruitment and training, community, commerce and admin systems. Direction: premium, competitive, community-driven, skill-focused, accessible to Bangladesh-first gamers, mobile-first, with ranking/season depth, scouting, sponsor and commerce opportunities and regional tournament ecosystems as longer-term goals (proposals, not commitments).
 
-Game support is configuration-driven (`apps/games`): FPS (Valorant, CS2, CODM, Rainbow Six), MOBA (Dota 2, Mobile Legends), battle royale (PUBG Mobile, Free Fire) and sports/arcade (eFootball, EA FC, Rocket League) are the targeted categories; a new game is added through the game registry and its passport schema and ranking config rather than new code paths. The supported launch journey is the free solo eFootball tournament flow; other modes are source-only until `BACKLOG.md` says otherwise.
+Game support is configuration-driven (`apps/games`): FPS (Valorant, CS2, CODM, Rainbow Six), MOBA (Dota 2, Mobile Legends), battle royale (PUBG Mobile, Free Fire) and sports/arcade (eFootball, EA FC, Rocket League) are the targeted categories; a new game is added through the game registry and its passport schema and ranking config rather than new code paths. The pilot journey prepared for launch is the free solo eFootball tournament flow (OL-13 in `Documents/Development/BACKLOG.md`); other modes are source-only until the backlog says otherwise.
 
-What exists in source and how it behaves. "Implemented" means the code is present and covered by targeted tests; it is not a launch-acceptance claim (see `Documents/Development/STATUS.md` and `BACKLOG.md` for dated acceptance state).
+"Implemented" means the code is present and covered by targeted tests; it is not a launch-acceptance claim (see `Documents/Development/STATUS.md` and `BACKLOG.md` for dated acceptance state).
 
 ## Accounts and player identity
 
@@ -35,7 +37,7 @@ Lifecycle (`Tournament.ALLOWED_TRANSITIONS`): `draft` -> `pending_approval`/`pub
 ## Wallet and coins
 
 * DeltaCoin wallet per user, ledger of transactions, top-up (manual review), withdrawal requests, prize claims and daily rewards; the shop and inventory spend coins.
-* Wallet PIN protects withdrawals (policy and open work in [security.md](security.md)). Withdrawal requests are processed by staff in the Django admin; no payment gateway is called automatically.
+* Wallet PIN protects withdrawals (current policy gaps and open PR #77 in [security](../operations/security.md#wallet-and-coins)). Withdrawal requests are processed by staff in the Django admin; no payment gateway is called automatically.
 
 ## Community, notifications and discovery
 

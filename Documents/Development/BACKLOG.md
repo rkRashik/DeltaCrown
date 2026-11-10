@@ -111,7 +111,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 - Objective: explain slow images while preserving every private/conditional delivery boundary.
 - Dependencies: approved read-only scope; OL-01 verification priority; OL-03/04 coordinate HTML-versus-image measurements.
-- Relevant code: [media views](../../apps/common/media/views.py), [storage](../../apps/common/media/storage.py), [media policy](../../apps/common/media/policy.py), [media architecture history](../../docs/integrations.md#media-storage).
+- Relevant code: [media views](../../apps/common/media/views.py), [storage](../../apps/common/media/storage.py), [media policy](../../apps/common/media/policy.py), [media architecture history](../../docs/operations/integrations.md#media-storage).
 - References/evidence: [PR #31](https://github.com/rkRashik/DeltaCrown/pull/31) adds bounded streaming; Issue #37 records earlier private-media checks and slow-image concerns. Neither establishes the complete image root cause or current privacy state.
 - Acceptance: classify approved public artwork separately from confidential/conditional files; measure dimensions, bytes, TTFB/transfer, cache headers and repeat views with approved assets; document authorization and raw-access denial through safe synthetic checks; compare candidate fixes and rollback without publishing private inventories.
 - Next action: audit only approved public assets/synthetic private fixtures; present a measured delivery recommendation. No copies, deletion or policy changes.
@@ -122,7 +122,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 - Objective: determine whether R2 improves cost/performance over existing Supabase/Cloudinary within owner constraints; retaining current providers is a valid outcome.
 - Dependencies: OL-05 findings and current owner-approved usage/budget assumptions. No migration approval exists.
-- Relevant references: [media architecture](../../docs/integrations.md#media-storage), [storage configuration](../../apps/common/media/configuration.py), Issue #37. Historic pricing is not a current quote.
+- Relevant references: [media architecture](../../docs/operations/integrations.md#media-storage), [storage configuration](../../apps/common/media/configuration.py), Issue #37. Historic pricing is not a current quote.
 - Evidence: owner requires free/very low cost and avoidance of additional storage charges; no measured provider comparison or validated quota implementation yet.
 - Acceptance: verify current provider pricing/entitlements; model storage, request classes, ongoing billing, backups, duplicates, growth and transfer; design warnings near 8 GB and 9 GB plus blocking safely below the applicable allowance; define units, concurrent upload reservations, reconciliation, failure/abuse behavior and owner recovery. State absence of a provider-enforced hard cap and residual billing risk; never claim warnings guarantee zero spend.
 - Next action: after higher-priority blockers, prepare a dated comparison and quota design for owner decision. No account purchase, upload migration or automatic media deletion.
@@ -145,7 +145,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 - Objective: make required lifecycle, notification and other async work reliable within capacity/budget.
 - Dependencies: OL-03 resource evidence; owner architecture/cost approval before activation.
 - Relevant code: [Celery configuration](../../deltacrown/celery.py), [tournament operations tasks](../../apps/tournament_ops/tasks/), [notification tasks](../../apps/notifications/tasks.py), [start script](../../bin/start_render.sh).
-- References/evidence: Issue #37 reports Celery OFF and a successful five-minute authenticated lifecycle cron; [launch handoff](../../docs/deployment.md) contains historical job work, not permission to activate it.
+- References/evidence: Issue #37 reports Celery OFF and a successful five-minute authenticated lifecycle cron; [launch handoff](../../docs/operations/deployment.md) contains historical job work, not permission to activate it.
 - Acceptance: inventory job producers/consumers and actual triggers; document missed/duplicate/retry semantics, timeouts, idempotency, after-commit dispatch, backlog monitoring and shutdown; compare separate worker/scheduler/other queue options and costs; test the selected design in isolation before approved production rollout.
 - Next action: map required launch jobs and gaps while leaving Celery OFF. A cron HTTP success alone cannot close this task.
 
@@ -167,7 +167,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 - Objective: complete usable supported journeys across desktop, tablet and mobile.
 - Dependencies: OL-09 workflow matrix; settings specification before any separately authorized settings redesign.
 - Relevant code: [mobile tournament detail](../../templates/tournaments/detailPages/_detail_mobile.html), [settings template](../../templates/user_profile/profile/settings_control_deck.html), [static assets](../../static/).
-- References/evidence: latest master includes mobile rich-text correction; [readiness report](../../docs/deployment.md) retains earlier findings/fixes. No current comprehensive viewport or assistive-technology PASS.
+- References/evidence: latest master includes mobile rich-text correction; [readiness report](../../docs/operations/deployment.md) retains earlier findings/fixes. No current comprehensive viewport or assistive-technology PASS.
 - Acceptance: record tested widths/devices/browsers; no horizontal overflow; complete navigation, forms, validation/errors, modals, keyboard/focus/labels/contrast/reduced-motion checks; preserve save, CSRF, AJAX and passport contracts. Proposed accessibility target is in PRD, not a certification claim.
 - Next action: audit actual representative pages and rank reproducible defects before scoped fixes.
 
@@ -188,7 +188,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 - Objective: verify accurate discoverability of eligible public pages without indexing private content.
 - Dependencies: public-page readiness/OL-11, current canonical configuration and owner-controlled Search Console access. Security/privacy gates remain prerequisites to promotion.
-- Relevant code: [SEO policy](../../apps/common/seo.py), [robots/sitemaps](../../apps/common/seo_views.py), [domain and SEO notes](../../docs/deployment.md#domain-and-seo), [domain and SEO notes](../../docs/deployment.md#domain-and-seo).
+- Relevant code: [SEO policy](../../apps/common/seo.py), [robots/sitemaps](../../apps/common/seo_views.py), [domain and SEO notes](../../docs/operations/deployment.md#domain-and-seo), [domain and SEO notes](../../docs/operations/deployment.md#domain-and-seo).
 - References/evidence: SEO source exists; Issue #37 records a canonical-origin update. Current indexing, sitemap submission, Search Console verification and search-selected canonical state remain unverified.
 - Acceptance: verify canonical/query/noindex/redirect/JSON-LD and sitemap eligibility; private/error pages excluded; owner confirms property verification/submission and records indexing observations. Do not promise rankings or completion solely from sitemap availability.
 - Next action: review source and safe public metadata, then obtain owner Search Console status. No DNS/callback/redirect changes by default.
@@ -199,7 +199,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 
 - Objective: record an explicit owner go/no-go for a defined supported launch scope.
 - Dependencies/blockers: OL-01/02 security; required reliability/performance/media/job gates from OL-03/04/05/07/08; workflow/mobile/brand/SEO acceptance from OL-09/10/11/12. OL-06 migration is optional, not an artificial blocker. Required open items must be resolved or explicitly dispositioned by the owner; no silent risk acceptance.
-- Relevant references: [features](../../docs/features.md), [readiness history](../../docs/deployment.md), [runbook index](../../docs/runbooks/README.md), Issue #37.
+- Relevant references: [features](../../docs/guides/features.md), [readiness history](../../docs/operations/deployment.md), [runbook index](../../docs/runbooks/README.md), Issue #37.
 - Evidence: historical selected CI/live-route checks and owner Google/reset confirmation exist. Fresh signup/OTP, external non-allowlisted Google sign-in, current deployment/resource behavior, full supported journeys and independent recovery acceptance are incomplete here.
 - Acceptance: exact release SHA/environment; required CI and isolated journeys pass; approved real signup/provider verification; private access and media boundaries remain intact; measured performance/cost budgets and recovery evidence; monitoring/rollback ownership; owner records scope and release decision separately from technical tests.
 - Next action: maintain a release gate matrix as upstream tasks close. Do not infer approval from a healthy homepage or a merged documentation PR.

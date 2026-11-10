@@ -1,12 +1,14 @@
 # Deployment and operations
 
+Purpose: how production is hosted, built, released and rolled back, and which environment variables must exist. Related: [integrations](integrations.md), [security](security.md), [environment reference](../reference/environment.md), [runbooks](../runbooks/README.md).
+
 ## Environments
 
 | | Production |
 |---|---|
 | Host | Render web service `DeltaCrown` (Python runtime, **Free plan**, 1 instance, Singapore) |
 | URLs | <https://ownlobby.com> (canonical), `deltacrown.onrender.com` (service hostname, kept for health monitoring) |
-| Branch | `master`; **auto-deploy is OFF**. Every deploy is a manual, owner-approved action in the Render dashboard |
+| Branch | `master`; **auto-deploy is OFF** (Render reports `autoDeploy: no`). A deploy happens only when the owner triggers it, either with **Manual Deploy in the Render dashboard** or through the **Render API** (the deploy history shows `trigger: api` for recent releases). Both build the commit you name; neither is started by a merge |
 | Health check | `/healthz/` |
 | Build | `bash render_build.sh` |
 | Start | `bash start.sh` |
@@ -30,27 +32,24 @@ Runs Daphne on `$PORT` with proxy headers, HTTP timeout, WebSocket connect timeo
 1. Confirm CI green on the PR head (smoke and ASGI contracts), then merge to `master`.
 2. Confirm a recent Supabase backup or point-in-time recovery point exists and note its timestamp. Check the diff for migrations, dependency or settings changes; none means the deploy is a pure code swap.
 3. Confirm required environment variables exist (names in [Environment](#environment-variables); values are never recorded in Git).
-4. Render dashboard -> DeltaCrown -> Manual Deploy of the exact `master` commit. Watch the build log; expect about 3 minutes.
+4. Trigger the deploy of the exact `master` commit: Render dashboard -> DeltaCrown -> Manual Deploy (Deploy a specific commit), or the equivalent Render API call. Watch the build log; expect about 3 minutes.
 5. Post-deploy checks: `/healthz/` 200 on both hostnames; `/`, `/tournaments/`, `/teams/`, `/competition/rankings/`, a 404 page; response headers (nonce CSP, HSTS); login with `?next=/teams/` lands on `/teams/` and an external `next` does not leave the site; signup -> OTP email -> verify; password reset email and link (single use); Google sign-in with a test account; free registration in a test tournament; notifications on a phone; wallet pages load (do not move real money). Watch Render memory and logs for 30 minutes.
 
 ## Rollback
 
-No migrations means the previous commit can be redeployed without data changes. In Render: Deploys -> Rollback to the previous live deploy, or Manual Deploy of the previous commit SHA (about 3 minutes). Verify `/healthz/`, login and `/tournaments/`. Do not revert Git on `master` during an incident; fix forward on a branch. If a release included migrations or wallet PIN changes, review compatibility before rolling back past them. Triggers: failing health check, repeated 5xx, broken login/OTP/reset/registration, memory exhaustion, CSP breakage.
+No migrations means the previous commit can be redeployed without data changes. In Render: Deploys -> Rollback to the previous live deploy (dashboard), or deploy the previous commit SHA through the dashboard or the API (about 3 minutes). Verify `/healthz/`, login and `/tournaments/`. Do not revert Git on `master` during an incident; fix forward on a branch. If a release included migrations or wallet PIN changes, review compatibility before rolling back past them. Triggers: failing health check, repeated 5xx, broken login/OTP/reset/registration, memory exhaustion, CSP breakage.
 
 ## Environment variables
 
-Names only. Production values live in the Render dashboard.
+The full list of names, grouped by area, is in the [environment reference](../reference/environment.md). Production values live in the Render dashboard and are **not verified from this repository**. Before a release confirm these exist (values are never written to Git):
 
-| Area | Variables |
-|---|---|
-| Core | `DJANGO_SECRET_KEY` (signing key, rotation runbook in [runbooks](runbooks/signing-key-rotation.md)), `DATABASE_URL`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL` (canonical origin, must be HTTPS in production), `RENDER_EXTERNAL_HOSTNAME` |
-| Google sign-in | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (legacy `DeltaCrown_OAUTH_CLIENT_ID/SECRET`). The redirect URI is `SITE_URL` + `/account/google/callback/` and must be an authorized redirect in the Google console |
-| Email | `RESEND_API_KEY` (Resend SMTP, sender `noreply@deltacrown.xyz`, domain verified in Resend); fallback Gmail SMTP with `EMAIL_HOST_USER` and `DeltaCrownEmailAppPassword`; `DEFAULT_FROM_EMAIL`; `BRAND_SUPPORT_EMAIL` (default `support@ownlobby.com`) |
-| Branding | `BRAND_FACEBOOK_URL`, `BRAND_INSTAGRAM_URL`, `BRAND_YOUTUBE_URL` (empty hides the link), `BRAND_DISCORD_URL` |
-| Redis / jobs | `REDIS_URL` (cache, channel layer), `ENABLE_CELERY_WORKER`, `ENABLE_CELERY_BEAT`, `CELERY_BROKER_URL`, `CRON_SECRET` |
-| Media | `OWNLOBBY_MEDIA_MODE` (`legacy`/`local`/`s3`), storage verification flags, Cloudinary, S3-compatible and Supabase storage keys; see [integrations.md](integrations.md) |
-| Game providers | `RIOT_*`, `EPIC_*`, `STEAM_API_KEY`, `RIOT_REDIRECT_URI` |
-| Operations | `SENTRY_DSN`, `ASGI_THREADS`, `DAPHNE_*` timeouts, `THROTTLE_*` rates, `OWNLOBBY_DOMAIN_ENABLED`, `PUBLIC_DOMAIN_REDIRECTS_ENABLED` |
+* Core: `DJANGO_SECRET_KEY`, `DATABASE_URL`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL` (canonical origin, HTTPS), `RENDER_EXTERNAL_HOSTNAME`.
+* Google sign-in: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; the redirect URI is `SITE_URL` + `/account/google/callback/` and must be an authorised redirect in the Google console.
+* Email: `RESEND_API_KEY` (otherwise the Gmail fallback, otherwise the console backend, which sends nothing); `DEFAULT_FROM_EMAIL` if the default `noreply@deltacrown.xyz` is not wanted; `BRAND_SUPPORT_EMAIL`.
+* Scheduling: `CRON_SECRET` for `api/lifecycle/cron/`. The endpoint is meant to be called every 2-5 minutes by an external scheduler (a free cron service or a Render cron job); whether one is configured in production is unverified.
+* Redis (`REDIS_URL`), media (`OWNLOBBY_MEDIA_MODE` and storage keys), provider keys and flags as needed.
+
+Code defaults differ from production in places (for example `OWNLOBBY_MEDIA_MODE` defaults to `legacy`, `NOTIFICATIONS_SSE_ENABLED` to off); check the dashboard for the real values.
 
 ## Domain and SEO
 

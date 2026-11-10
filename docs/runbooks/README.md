@@ -9,4 +9,4 @@ Procedures for features that are implemented but switched off, or that need owne
 | [public-cdn-delivery.md](public-cdn-delivery.md) | Cloudinary delivery of reviewed public artwork (flag off) |
 | [media-origin-governor.md](media-origin-governor.md) | Admission control for media origin reads |
 
-Release, rollback and environment checks: [deployment.md](../deployment.md). Backups: [deployment.md](../deployment.md#resource-limits-and-operations-notes).
+Release, rollback and environment checks: [deployment.md](../operations/deployment.md). Backups: [deployment.md](../operations/deployment.md#resource-limits-and-operations-notes).
