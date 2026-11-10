@@ -161,20 +161,20 @@ def payment_methods_view(request):
 @login_required
 def pin_setup_view(request):
     """
-    Set up or change 4-digit PIN.
+    Set up or change the 6-digit wallet PIN (changing requires the current PIN).
     """
     profile = request.user.profile
     wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
     
     if request.method == 'POST':
-        form = PINSetupForm(request.POST)
+        form = PINSetupForm(request.POST, wallet=wallet)
         if form.is_valid():
-            pin = form.cleaned_data['pin']
-            wallet.set_pin(pin)
+            from apps.economy.services.wallet_pin import store_new_pin
+            store_new_pin(wallet.pk, form.cleaned_data['pin'])
             messages.success(request, 'PIN set up successfully. You can now request withdrawals.')
             return redirect('economy:wallet_dashboard')
     else:
-        form = PINSetupForm()
+        form = PINSetupForm(wallet=wallet)
     
     context = {
         'wallet': wallet,

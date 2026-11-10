@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
@@ -22,6 +23,7 @@ import random
 import string
 
 from apps.economy.models import DeltaCrownWallet, WalletPINOTP
+from apps.economy.services import wallet_pin
 from apps.user_profile.models import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -85,8 +87,15 @@ def otp_request(request):
             }, status=400)
         
         # If changing PIN, verify current PIN first
+        if purpose == 'pin_setup' and wallet.pin_hash:
+            # An existing PIN can only be replaced through 'pin_change' (current PIN verified).
+            return JsonResponse({
+                'success': False,
+                'error': 'A PIN is already set. Use "pin_change" with your current PIN.'
+            }, status=400)
+
         if purpose == 'pin_change':
-            if not wallet.pin_enabled:
+            if not wallet.pin_hash:
                 return JsonResponse({
                     'success': False,
                     'error': 'No PIN set. Use "pin_setup" instead.'
@@ -266,10 +275,12 @@ def otp_verify_and_set_pin(request):
                 'error': 'PIN and confirmation are required'
             }, status=400)
         
-        if len(pin) != 6 or not pin.isdigit():
+        try:
+            wallet_pin.validate_new_pin(pin)
+        except ValidationError as exc:
             return JsonResponse({
                 'success': False,
-                'error': 'PIN must be exactly 6 digits'
+                'error': exc.messages[0]
             }, status=400)
         
         if pin != confirm_pin:
@@ -290,6 +301,14 @@ def otp_verify_and_set_pin(request):
                 'error': 'No pending OTP found. Please request a new OTP.'
             }, status=404)
         
+        # A PIN that already exists may only be replaced by an OTP issued for 'pin_change'
+        # (which required the current PIN); a stale 'pin_setup' OTP cannot overwrite it.
+        if wallet.pin_hash and otp.purpose != 'pin_change':
+            return JsonResponse({
+                'success': False,
+                'error': 'Changing an existing PIN requires a verification code requested with your current PIN.'
+            }, status=403)
+
         # Check if OTP is still valid
         if not otp.is_valid():
             if otp.is_used:

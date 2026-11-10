@@ -7,13 +7,15 @@ Owner-only PIN setup, verification, and security features.
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import check_password
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 import logging
 import time
 
 from apps.economy.models import DeltaCrownWallet
+from apps.economy.services import wallet_pin
 from apps.user_profile.models import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -60,10 +62,12 @@ def pin_setup(request):
                 'error': 'PIN and confirmation are required'
             }, status=400)
         
-        if len(pin) != 6 or not pin.isdigit():
+        try:
+            wallet_pin.validate_new_pin(pin)
+        except ValidationError as exc:
             return JsonResponse({
                 'success': False,
-                'error': 'PIN must be exactly 6 digits'
+                'error': exc.messages[0]
             }, status=400)
         
         if pin != confirm_pin:
@@ -72,27 +76,25 @@ def pin_setup(request):
                 'error': 'PIN and confirmation do not match'
             }, status=400)
         
-        # If PIN already exists, verify current PIN first
-        if wallet.pin_enabled:
+        # An existing PIN (any non-empty hash, whatever pin_enabled says) is never replaced
+        # without verifying it; the check shares the failed-attempt lockout.
+        if wallet_pin.wallet_has_pin(wallet):
             current_pin = request.POST.get('current_pin', '').strip()
             if not current_pin:
                 return JsonResponse({
                     'success': False,
                     'error': 'Current PIN required to change PIN'
                 }, status=400)
-            
-            if not check_password(current_pin, wallet.pin_hash):
+
+            result = wallet_pin.verify_pin_with_lockout(wallet.pk, current_pin)
+            if not result.ok:
                 return JsonResponse({
                     'success': False,
-                    'error': 'Current PIN is incorrect'
+                    'error': result.message if result.locked else 'Current PIN is incorrect'
                 }, status=403)
-        
-        # Set new PIN
-        wallet.pin_hash = make_password(pin)
-        wallet.pin_enabled = True
-        wallet.pin_failed_attempts = 0
-        wallet.pin_locked_until = None
-        wallet.save()
+
+        # Set new PIN (hash only)
+        wallet_pin.store_new_pin(wallet.pk, pin)
         
         elapsed_ms = int((time.time() - start_time) * 1000)
         logger.info(f"[ECON] pin_setup user={request.user.username} success=True ms={elapsed_ms}")
@@ -146,8 +148,8 @@ def pin_verify(request):
                 'error': 'Wallet not found. Please set up your PIN first.'
             }, status=404)
         
-        # Check if PIN is enabled
-        if not wallet.pin_enabled:
+        # Check that a PIN exists
+        if not wallet_pin.wallet_has_pin(wallet):
             return JsonResponse({
                 'success': False,
                 'error': 'PIN not set up. Please set up your PIN first.'
@@ -179,7 +181,7 @@ def pin_verify(request):
             }, status=400)
         
         # Verify PIN
-        if check_password(pin, wallet.pin_hash):
+        if wallet_pin.is_plausible_entry(pin) and check_password(pin, wallet.pin_hash):
             # Success - reset failed attempts
             wallet.pin_failed_attempts = 0
             wallet.save()

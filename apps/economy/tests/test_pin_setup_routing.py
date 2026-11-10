@@ -60,14 +60,14 @@ def test_wallet_dashboard_pin_link_targets_the_html_page(signed_in):
 
 def test_api_stays_post_only_and_login_protected(signed_in):
     assert signed_in.get(API_PATH, secure=True).status_code == 405
-    anonymous = Client().post(API_PATH, {'pin': '123456', 'confirm_pin': '123456'}, secure=True)
+    anonymous = Client().post(API_PATH, {'pin': '482916', 'confirm_pin': '482916'}, secure=True)
     assert anonymous.status_code == 302 and '/login' in anonymous['Location']
 
 
 def test_api_post_contract_is_unchanged(signed_in, player):
     bad = signed_in.post(API_PATH, {'pin': '123', 'confirm_pin': '123'}, secure=True)
     assert bad.status_code == 400 and 'exactly 6 digits' in json.dumps(bad.json())
-    ok = signed_in.post(API_PATH, {'pin': '123456', 'confirm_pin': '123456'}, secure=True)
+    ok = signed_in.post(API_PATH, {'pin': '482916', 'confirm_pin': '482916'}, secure=True)
     assert ok.status_code == 200 and ok.json().get('success') is True
     assert DeltaCrownWallet.objects.get(profile__user=player).has_pin()
 
@@ -75,5 +75,5 @@ def test_api_post_contract_is_unchanged(signed_in, player):
 def test_api_still_enforces_csrf(player):
     strict = Client(enforce_csrf_checks=True)
     strict.force_login(player)
-    assert strict.post(API_PATH, {'pin': '123456', 'confirm_pin': '123456'}, secure=True).status_code == 403
+    assert strict.post(API_PATH, {'pin': '482916', 'confirm_pin': '482916'}, secure=True).status_code == 403
     assert not DeltaCrownWallet.objects.get(profile__user=player).has_pin()
