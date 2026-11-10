@@ -20,6 +20,14 @@ if os.environ["DJANGO_SETTINGS_MODULE"] != "deltacrown.settings_brand_qa":
     raise SystemExit("Use deltacrown.settings_brand_qa; production settings are forbidden for this check.")
 
 BASELINE = "8270018c536df41dcd869c3f4412c3c62a1d685b"
+# Reviewed fixes to template URL tags (Batch E): password change pages linked to the non-existent user_profile:settings_v3
+# (HTTP 500 for every signed-in user); the reset pages now use named routes instead of a hard-coded path.
+REVIEWED_URL_FIXES = {
+    "templates/account/password_change_done.html",
+    "templates/account/password_change_form.html",
+    "templates/account/password_reset_confirm.html",
+    "templates/account/password_reset_done.html",
+}
 
 
 def original(path):
@@ -91,7 +99,7 @@ def run(*, collect_static=False):
             # arguments (reset mail now passes that path to the public-origin tag).
             def routes(text):
                 return [re.sub(r"\s+as\s+\w+\s*%}", " %}", tag) for tag in re.findall(url_pattern, text, re.S)]
-            if before is not None and routes(before) != routes(source):
+            if before is not None and routes(before) != routes(source) and name not in REVIEWED_URL_FIXES:
                 url_changes.append(name)
     report["python_syntax_errors"] = syntax_errors
     report["template_url_tag_changes"] = url_changes
