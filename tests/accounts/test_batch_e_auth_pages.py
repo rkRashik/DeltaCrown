@@ -5,6 +5,7 @@ request page, reset-link invalid state, authenticated password-change pages rend
 before), and the OTP page exposes the one-time-code input attributes.
 """
 import re
+import secrets
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -12,7 +13,22 @@ from django.core import mail
 from django.urls import reverse
 
 User = get_user_model()
-PW = "S3curePassw0rd!x"
+# Synthetic fixture credentials: generated per run, valid only for throwaway users in the test database.
+def _synthetic_password():
+    return "Tst-" + secrets.token_urlsafe(18)
+
+
+PW = _synthetic_password()
+NEW_PW = _synthetic_password()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    """Login and reset views rate-limit per IP in the shared cache; keep this file's many requests from leaking into other suites."""
+    from django.core.cache import cache
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture
@@ -129,10 +145,10 @@ def test_password_reset_full_flow(client, user):
     first = client.get(link, follow=True)
     html = _html(first)
     assert 'name="new_password1"' in html and 'for="id_new_password1"' in html and 'for="id_new_password2"' in html
-    done = client.post(first.redirect_chain[-1][0] if first.redirect_chain else link, {"new_password1": "An0ther-Str0ng-pass", "new_password2": "An0ther-Str0ng-pass"})
+    done = client.post(first.redirect_chain[-1][0] if first.redirect_chain else link, {"new_password1": NEW_PW, "new_password2": NEW_PW})
     assert done.status_code == 302 and done.url == reverse("account:password_reset_complete")
     user.refresh_from_db()
-    assert user.check_password("An0ther-Str0ng-pass")
+    assert user.check_password(NEW_PW)
 
 
 @pytest.mark.django_db
@@ -144,7 +160,7 @@ def test_password_change_pages_render_for_signed_in_user(client, user):
     html = _html(form)
     assert 'autocomplete="current-password"' in html and html.count('autocomplete="new-password"') == 2
     assert reverse("user_profile:profile_settings") in html
-    done = client.post(reverse("account:password_change"), {"old_password": PW, "new_password1": "Br4nd-New-Passw0rd", "new_password2": "Br4nd-New-Passw0rd"})
+    done = client.post(reverse("account:password_change"), {"old_password": PW, "new_password1": NEW_PW, "new_password2": NEW_PW})
     assert done.status_code == 302 and done.url == reverse("account:password_change_done")
     assert client.get(done.url).status_code == 200
 
@@ -153,3 +169,47 @@ def test_password_change_pages_render_for_signed_in_user(client, user):
 def test_password_change_requires_login(client):
     resp = client.get(reverse("account:password_change"))
     assert resp.status_code == 302 and "login" in resp.url
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("target", ["//evil.example/x", "https://evil.example/x", "http://evil.example", "javascript:alert(1)", "///evil.example"])
+def test_login_blocks_external_and_protocol_relative_next(client, user, target):
+    resp = client.post(reverse("account:login"), {"username": "batche", "password": PW, "next": target})
+    assert resp.status_code == 302 and "evil" not in resp.url and not resp.url.startswith("//") and "javascript" not in resp.url
+
+
+@pytest.mark.django_db
+def test_login_next_via_get_and_authenticated_redirect(client, user):
+    assert client.post(reverse("account:login") + "?next=/teams/", {"username": "batche", "password": PW}).url == "/teams/"
+    # already signed in: GET with a hostile next must not bounce off-site, a local one still works
+    bad = client.get(reverse("account:login") + "?next=//evil.example/x")
+    assert bad.status_code == 302 and "evil" not in bad.url
+    assert client.get(reverse("account:login") + "?next=/teams/").url == "/teams/"
+
+
+@pytest.mark.django_db
+def test_login_requires_csrf(user):
+    from django.test import Client
+    strict = Client(enforce_csrf_checks=True)
+    assert strict.post(reverse("account:login"), {"username": "batche", "password": PW}).status_code == 403
+    assert strict.post(reverse("account:password_reset"), {"email": "batche@example.test"}).status_code == 403
+
+
+@pytest.mark.django_db
+def test_google_entry_keeps_next_and_view_contract(client, settings):
+    settings.GOOGLE_OAUTH_CLIENT_ID = "synthetic-client-id"
+    html = _html(client.get(reverse("account:login") + "?next=/teams/"))
+    assert reverse("account:google_login") + "?next=/teams/" in html
+
+
+@pytest.mark.django_db
+def test_reset_token_cannot_be_replayed(client, user):
+    client.post(reverse("account:password_reset"), {"email": "batche@example.test"})
+    link = re.search(r"https?://[^/\s]+(/account/reset/[^\s]+)", mail.outbox[0].body).group(1)
+    page = client.get(link, follow=True)
+    post_url = page.redirect_chain[-1][0] if page.redirect_chain else link
+    assert client.post(post_url, {"new_password1": NEW_PW, "new_password2": NEW_PW}).status_code == 302
+    replay = client.post(post_url, {"new_password1": PW, "new_password2": PW}, follow=True)
+    assert 'name="new_password1"' not in _html(replay)
+    user.refresh_from_db()
+    assert user.check_password(NEW_PW) and not user.check_password(PW)
