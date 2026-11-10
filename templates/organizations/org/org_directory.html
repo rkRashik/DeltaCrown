@@ -85,11 +85,11 @@
 
                                 <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Teams</div>
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Teams</div>
                                         <div class="text-white font-mono font-bold">{{ org.squads_count|default:0 }}</div>
                                     </div>
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Score</div>
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Score</div>
                                         <div class="text-gray-300 font-mono font-bold">{{ org.ranking.empire_score|default:0|floatformat:0 }}</div>
                                     </div>
                                 </div>
@@ -171,11 +171,11 @@
 
                                 <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Teams</div>
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Teams</div>
                                         <div class="text-white font-mono font-bold">{{ org.squads_count|default:0 }}</div>
                                     </div>
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Score</div>
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Score</div>
                                         <div class="text-orange-300 font-mono font-bold">{{ org.ranking.empire_score|default:0|floatformat:0 }}</div>
                                     </div>
                                 </div>
@@ -196,7 +196,7 @@
             <form method="get" action="" class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="relative group">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-delta-electric transition-colors"></i>
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-delta-electric transition-colors"></i>
                         <input type="text" id="org-search" name="q" value="{{ q }}" placeholder="Search organizations" aria-label="Search organizations" class="bg-delta-surface border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-delta-electric transition-all w-64 font-corp">
                     </div>
 
@@ -207,13 +207,13 @@
                             <option value="{{ code }}" {% if region == code %}selected{% endif %}>{{ name }}</option>
                             {% endfor %}
                         </select>
-                        <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
+                        <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></i>
                     </div>
                     
                     <button type="submit" class="ol-btn ol-btn--secondary ol-btn--sm">Apply</button>
                 </div>
 
-                <div class="text-xs text-slate-500 font-mono">
+                <div class="text-xs text-slate-400 font-mono">
                     Showing {{ rows|length }} of {{ total_count }} organizations
                 </div>
             </form>
@@ -221,7 +221,7 @@
             <div class="glass-panel rounded-xl overflow-hidden border border-white/10">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-delta-highlight border-b border-white/10 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        <thead class="bg-delta-highlight border-b border-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
                             <tr>
                                 <th class="p-5 w-20 text-center">Rank</th>
                                 <th class="p-5">Organization</th>
@@ -254,7 +254,7 @@
                                                 <i class="fas fa-check-circle text-delta-electric text-[10px]" title="Verified"></i>
                                                 {% endif %}
                                             </div>
-                                            <div class="text-xs text-slate-500 font-mono">{{ org.slug|upper }}</div>
+                                            <div class="text-xs text-slate-400 font-mono">{{ org.slug|upper }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -275,14 +275,14 @@
                                     {% if org.is_verified %}
                                         <span class="bg-delta-success/10 border border-delta-success text-delta-success px-2 py-1 rounded font-bold uppercase">Verified</span>
                                     {% else %}
-                                        <span class="bg-slate-700/10 border border-slate-600 text-slate-500 px-2 py-1 rounded font-bold uppercase">Not verified</span>
+                                        <span class="bg-slate-700/10 border border-slate-600 text-slate-400 px-2 py-1 rounded font-bold uppercase">Not verified</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
                                 <td colspan="6" class="p-12 text-center">
-                                    <div class="text-slate-500 text-sm">
+                                    <div class="text-slate-400 text-sm">
                                         <i class="fas fa-search text-3xl mb-4 block opacity-30"></i>
                                         <p class="font-bold">No organizations found</p>
                                         <p class="text-xs mt-2">Try adjusting your search or filters</p>
@@ -297,7 +297,7 @@
                 
                 {% if page_count > 1 %}
                 <div class="p-4 border-t border-white/10 flex justify-between items-center bg-delta-highlight">
-                    <span class="text-xs text-slate-500 font-mono">Page {{ page }} of {{ page_count }}</span>
+                    <span class="text-xs text-slate-400 font-mono">Page {{ page }} of {{ page_count }}</span>
                     <div class="flex gap-2">
                         {% if has_previous %}
                             <a href="?page={{ previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if region %}&region={{ region }}{% endif %}" class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition"><i class="fas fa-chevron-left"></i></a>

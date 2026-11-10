@@ -3,7 +3,8 @@
 {% load media_derivatives %}
 {% load static dc_avatar %}
 
-{% block title %}{{ brand.name }} | Pro Profile - {{ profile_user.username|default:'Player' }}{% endblock %}
+{% block title %}{{ profile.display_name|default:profile_user.username }} (@{{ profile_user.username }}) | {{ brand.name }}{% endblock %}
+{% block body_class %}ol-identity{% endblock %}
 
 {% block extra_css %}
 <!-- Google Fonts for profile design -->
@@ -27,15 +28,15 @@
                     },
                     colors: {
                         z: {
-                            bg: '#030014',       /* Deep Void */
-                            panel: '#0F0B1E',    /* Glass Panel */
-                            card: '#15102A',     /* Solid Card */
-                            cyan: '#00F0FF',     /* Cyber Cyan */
-                            purple: '#7B2CBF',   /* Electric Purple */
-                            gold: '#FFD60A',     /* Trophy Gold */
-                            red: '#FF007A',      /* Alert Red */
+                            bg: '#0B0C0C',       /* canvas */
+                            panel: '#17181A',    /* surface */
+                            card: '#17181A',     /* surface */
+                            cyan: '#E2B761',     /* saffron (primary accent) */
+                            purple: '#D8804C',   /* ember (secondary) */
+                            gold: '#E2B761',     /* saffron */
+                            red: '#E5484D',      /* alert */
                             green: '#10B981',    /* Success Green */
-                            accent: '#6366F1'    /* Indigo Accent */
+                            accent: '#E2B761'    /* saffron */
                         }
                     },
                     backgroundImage: {
@@ -43,10 +44,10 @@
                         'card-shine': 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.05) 25%, transparent 30%)',
                     },
                     boxShadow: {
-                        'neon-cyan': '0 0 20px rgba(0, 240, 255, 0.25)',
-                        'neon-purple': '0 0 20px rgba(123, 44, 191, 0.25)',
-                        'neon-gold': '0 0 20px rgba(255, 214, 10, 0.25)',
-                        'neon-red': '0 0 20px rgba(255, 0, 122, 0.25)',
+                        'neon-cyan': 'none',
+                        'neon-purple': 'none',
+                        'neon-gold': 'none',
+                        'neon-red': 'none',
                     },
                     animation: {
                         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -66,21 +67,17 @@
 <style>
     /* Profile page wrapper styling */
     .profile-zenith-wrapper {
-        background-color: #030014;
-        color: #e2e8f0;
+        background-color: #0B0C0C;
+        color: #F6F1E7;
         overflow-x: hidden;
         min-height: 100vh;
-                radial-gradient(circle at 10% 20%, rgba(123, 44, 191, 0.15) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 20%);
-        }
+    }
 
         /* Glassmorphism Utilities */
         .glass-panel {
-            background: rgba(15, 11, 30, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            background: #17181A;
+            border: 1px solid #38332C;
+            box-shadow: none;
         }
         
         .glass-card {
@@ -90,30 +87,28 @@
         }
         
         .glass-card:hover {
-            background: rgba(255, 255, 255, 0.07);
+            background: rgba(255, 255, 255, 0.05);
             border-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-4px);
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
         }
 
         /* Gradient Text */
         .text-gradient-gold {
-            background: linear-gradient(to right, #FFD60A, #FF9F0A);
+            background: none; color: #E2B761;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
         .text-gradient-cyan {
-            background: linear-gradient(to right, #00F0FF, #0099FF);
+            background: none; color: #E2B761;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #030014; }
+        ::-webkit-scrollbar-track { background: #0B0C0C; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+        ::-webkit-scrollbar-thumb:hover { background: #E2B761; }
 
         /* Grid Layout Fixes */
         .dashboard-grid {
@@ -123,9 +118,34 @@
             align-items: start; /* Prevents stretching to equalize height which looks bad when content differs */
         }
         
+        /* touch targets: tabs and the in-page "Career" link reach 44px on touch screens */
+        @media (pointer: coarse) {
+            .tab-btn, #center-column button[data-profile-tab-target] { min-height: 44px; min-width: 44px; }
+        }
+
+        /* While the page is still streaming in, the sidebars (earlier in the source than the centre column) would be
+           painted above content that has not arrived yet and then jump below it. Below 1024px they stay invisible
+           (and so do not count as layout shift) until the DOM is complete. */
+        @media (max-width: 1023px) {
+            .dashboard-grid:not(.dg-ready) > #left-sidebar, .dashboard-grid:not(.dg-ready) > #right-sidebar { visibility: hidden; }
+        }
+        @media (max-width: 1023px) {
+            .dashboard-grid > #center-column { order: 1; }
+            .dashboard-grid > #left-sidebar { order: 2; }
+            .dashboard-grid > #right-sidebar { order: 3; }
+        }
+
         @media (min-width: 1024px) {
             .dashboard-grid {
                 grid-template-columns: 320px minmax(0, 1fr) 320px;
+            }
+            /* Column order is declared here (not only through utility classes) so the layout does not jump when the
+               Tailwind runtime finishes generating its styles. */
+            .dashboard-grid > #left-sidebar { order: 1; }
+            .dashboard-grid > #center-column { order: 2; }
+            .dashboard-grid > #right-sidebar { order: 3; }
+            .dashboard-grid--no-left {
+                grid-template-columns: minmax(0, 1fr) 320px;
             }
         }
 
@@ -134,34 +154,34 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
         }
         .item-card:hover { 
-            transform: translateY(-4px); 
+            border-color: rgba(226, 183, 97, 0.5); 
         }
         
         .rarity-legendary { 
             border: 1px solid rgba(255, 214, 10, 0.3); 
-            box-shadow: 0 0 15px rgba(255, 214, 10, 0.1); 
+            box-shadow: none; 
         }
         .rarity-legendary:hover { 
             border-color: rgba(255, 214, 10, 0.8); 
-            box-shadow: 0 0 25px rgba(255, 214, 10, 0.3); 
+            box-shadow: none; 
         }
         
         .rarity-epic { 
             border: 1px solid rgba(123, 44, 191, 0.3); 
-            box-shadow: 0 0 15px rgba(123, 44, 191, 0.1); 
+            box-shadow: none; 
         }
         .rarity-epic:hover { 
             border-color: rgba(123, 44, 191, 0.8); 
-            box-shadow: 0 0 25px rgba(123, 44, 191, 0.3); 
+            box-shadow: none; 
         }
         
         .rarity-rare { 
             border: 1px solid rgba(0, 240, 255, 0.3); 
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); 
+            box-shadow: none; 
         }
         .rarity-rare:hover { 
             border-color: rgba(0, 240, 255, 0.8); 
-            box-shadow: 0 0 25px rgba(0, 240, 255, 0.3); 
+            box-shadow: none; 
         }
 
         .scrollbar-hide::-webkit-scrollbar { 
@@ -223,7 +243,7 @@
             right: 0;
             height: 50%;
             background: linear-gradient(to top, 
-                rgba(3, 0, 20, 0.90) 0%, 
+                rgba(11, 12, 12, 0.90) 0%, 
                 rgba(3, 0, 20, 0.50) 25%, 
                 transparent 60%);
             z-index: 1;
@@ -241,7 +261,7 @@
 
         /* Modal Overlay for Bounty */
         .modal-overlay {
-            background: rgba(3, 0, 20, 0.90);
+            background: rgba(11, 12, 12, 0.90);
         }
     </style>
 {% endblock %}
@@ -261,34 +281,24 @@
 <!-- Zenith Profile Wrapper for custom background -->
 <div class="profile-zenith-wrapper">
 
-    <!-- Cover Photo Container - Modern 4:1 Ratio with Gradient Blend -->
-    <div class="relative w-full aspect-[4/1] mb-0">
-        <!-- Banner Image -->
-        <div class="absolute inset-0 w-full h-full overflow-hidden">
-            {% if profile.banner_url %}
-            <img src="{{ profile.banner_url }}" 
-                 class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" alt="Cover">
-            {% else %}
-            <!-- Default gradient if no banner -->
-            <div class="w-full h-full bg-gradient-to-br from-z-purple/30 via-z-bg to-z-bg"></div>
-            {% endif %}
-        </div>
-        
-        <!-- Modern Gradient Blend Overlay - Fades banner into page body -->
-        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-z-bg pointer-events-none" style="background: linear-gradient(180deg, transparent 0%, transparent 60%, rgba(3, 0, 20, 0.4) 80%, #030014 100%);"></div>
-        
-        <!-- Subtle vignette for depth -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none"></div>
+    <!-- Cover: a real banner keeps its 4:1 ratio; without one the header sits on a slim plain band (no empty hero) -->
+    {% if profile.banner_url %}
+    <div class="relative w-full aspect-[4/1] max-h-72 overflow-hidden">
+        <img src="{{ profile.banner_url }}" class="w-full h-full object-cover object-center" alt="">
+        <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(180deg, transparent 0%, transparent 55%, #0B0C0C 100%);"></div>
     </div>
+    {% else %}
+    <div class="w-full h-20 md:h-24 bg-z-panel"></div>
+    {% endif %}
 
     <!-- Profile Info - Dropped Below Banner (Modern Layout) -->
-    <header class="relative -mt-24 md:-mt-32 z-20 px-4 md:px-8 mb-8">
+    <header class="relative -mt-10 md:-mt-12 z-20 px-4 md:px-8 mb-8">
         <div class="max-w-[1600px] mx-auto">
-            <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+            <div class="flex flex-col md:flex-row gap-4 md:gap-8">
                 
                 <!-- Avatar with modern overlap -->
                 <div class="relative shrink-0">
-                    <div class="w-32 h-32 md:w-40 md:h-40 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group border-4 border-z-bg">
+                    <div class="w-24 h-24 md:w-32 md:h-32 rounded-2xl p-0.5 bg-z-panel relative group border border-white/15">
                         {% if profile.avatar_url %}
                         <img src="{{ profile.avatar_url }}"
                             class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}"
@@ -299,10 +309,8 @@
                             class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
                         {% endif %}
                         
-                        <div class="absolute -bottom-2 -right-2 bg-z-bg p-1 rounded-xl">
-                            <div class="bg-z-gold text-black font-black font-display text-xs md:text-sm px-2 md:px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
-                                LVL {{ user_profile.level|default:"1" }}
-                            </div>
+                        <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-z-panel text-white font-semibold text-xs px-2.5 py-0.5 rounded-md border border-white/20 whitespace-nowrap">
+                            Level {{ user_profile.level|default:"1" }}
                         </div>
                     </div>
                 </div>
@@ -311,43 +319,43 @@
                 <div class="flex-1 pt-2 md:pt-4">
                     <div class="flex items-center gap-3 mb-2">
                         {% if user_teams and user_teams.0 %}
-                        <span class="bg-white/10 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 hover:bg-white/20 cursor-pointer transition">
-                            [{{ user_teams.0.tag|upper }}] {{ user_teams.0.name|upper }}
+                        <span class="bg-white/10 text-white text-xs font-semibold px-2 py-0.5 rounded border border-white/10">
+                            {% if user_teams.0.tag %}[{{ user_teams.0.tag|upper }}] {% endif %}{{ user_teams.0.name }}
                         </span>
                         {% endif %}
                         {% if user_profile.kyc_status == 'verified' %}
                         <div class="flex items-center gap-1 bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">
                             <i class="fa-solid fa-circle-check text-sm text-z-cyan"></i>
-                            <span class="text-[10px] text-z-cyan font-bold uppercase">Verified Pro</span>
+                            <span class="text-xs text-z-cyan font-semibold">Identity verified</span>
                         </div>
                         {% endif %}
                     </div>
 
-                    <h1 class="text-4xl md:text-6xl font-display font-extrabold tracking-tight flex flex-wrap items-center gap-3 leading-tight mb-2" style="color: #FFFFFF; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);">
+                    <h1 class="text-3xl md:text-4xl font-display font-bold flex flex-wrap items-baseline gap-x-3 gap-y-1 leading-tight mb-2" style="color: #F6F1E7;">
                         {{ profile.display_name|default:profile_user.username }}
-                        <span class="text-lg md:text-xl font-mono font-medium tracking-wider" style="color: #00D9F5;">#{{ profile_user.username }}</span>
+                        {% if profile.display_name and profile.display_name != profile_user.username %}<span class="text-base md:text-lg font-normal" style="color: #A7A198;">@{{ profile_user.username }}</span>{% endif %}
                     </h1>
 
                     {% if profile.bio %}
-                    <p class="text-sm md:text-base max-w-2xl font-normal leading-relaxed border-l-2 border-z-cyan/50 pl-4 my-3" style="color: #C9CED6; letter-spacing: 0.015em;">
+                    <p class="text-sm md:text-base max-w-2xl font-normal leading-relaxed border-l-2 border-z-cyan/50 pl-4 my-3" style="color: #D9D3C7;">
                         {{ profile.bio }}
                     </p>
                     {% endif %}
 
-                    <div class="flex flex-wrap items-center gap-6 md:gap-8 mt-4">
-                        <div data-click="openFollowersModal" data-click-args='["{{ profile_user.username }}"]' class="text-center group cursor-pointer">
-                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #00F0FF;">{{ user_stats.followers_count|default:0 }}</div>
-                            <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Followers</div>
+                    <div class="flex flex-wrap items-center gap-x-8 gap-y-3 mt-4">
+                        <div data-click="openFollowersModal" data-click-args='["{{ profile_user.username }}"]' class="group cursor-pointer min-w-[3rem]">
+                            <div class="text-xl md:text-2xl font-bold transition-colors duration-200" style="color: #F6F1E7;">{{ user_stats.followers_count|default:0 }}</div>
+                            <div class="text-xs font-medium" style="color: #A7A198;">Followers</div>
                         </div>
                         
-                        <div data-click="openFollowingModal" data-click-args='["{{ profile_user.username }}"]' class="text-center group cursor-pointer">
-                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #A78BFA;">{{ user_stats.following_count|default:0 }}</div>
-                            <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Following</div>
+                        <div data-click="openFollowingModal" data-click-args='["{{ profile_user.username }}"]' class="group cursor-pointer min-w-[3rem]">
+                            <div class="text-xl md:text-2xl font-bold transition-colors duration-200" style="color: #F6F1E7;">{{ user_stats.following_count|default:0 }}</div>
+                            <div class="text-xs font-medium" style="color: #A7A198;">Following</div>
                         </div>
                         
-                        <div class="text-center group cursor-pointer" data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
-                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #FFD60A;">{% if achievements_wins_count %}{{ achievements_wins_count }}{% else %}{{ user_stats.total_wins|default:0 }}{% endif %}</div>
-                            <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Wins</div>
+                        <div class="group cursor-pointer min-w-[3rem]" data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
+                            <div class="text-xl md:text-2xl font-bold transition-colors duration-200" style="color: #F6F1E7;">{% if achievements_wins_count %}{{ achievements_wins_count }}{% else %}{{ user_stats.total_wins|default:0 }}{% endif %}</div>
+                            <div class="text-xs font-medium" style="color: #A7A198;">Wins</div>
                         </div>
                         
                         {% if identity_ctx.country_name %}
@@ -364,43 +372,43 @@
                 <!-- Action Buttons - Now visible on all screens -->
                 <div class="flex flex-col md:flex-row lg:flex-col gap-3 shrink-0 pt-2 md:pt-4 w-full md:w-auto">
                     {% if relationship_ctx.show_edit_button %}
-                    <a href="{{ settings_url }}" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2 text-sm md:text-base">
-                        <i class="fa-solid fa-pen"></i> Edit Profile
+                    <a href="{{ settings_url }}" class="bg-z-cyan text-black font-semibold px-6 py-2.5 rounded-xl hover:brightness-110 transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit Profile
                     </a>
                     {% else %}
                         {% if relationship_ctx.can_follow %}
                             {% if relationship_ctx.follow_requested %}
-                            <button disabled data-follow-btn data-is-following="false" class="bg-gray-500/50 text-white font-bold uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base">
+                            <button disabled data-follow-btn data-is-following="false" class="bg-white/10 text-white font-semibold px-6 py-2.5 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 text-sm">
                                 <i class="fa-solid fa-clock"></i> Requested
                             </button>
                             {% else %}
-                            <button data-follow-btn data-is-following="false" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2 text-sm md:text-base">
-                                <i class="fa-solid fa-user-plus"></i> {% if relationship_ctx.is_private_account %}Request Follow{% else %}Follow{% endif %}
+                            <button data-follow-btn data-is-following="false" class="bg-z-cyan text-black font-semibold px-6 py-2.5 rounded-xl hover:brightness-110 transition flex items-center justify-center gap-2 text-sm">
+                                <i class="fa-solid fa-user-plus"></i> {% if relationship_ctx.is_private_account %}Request to follow{% else %}Follow{% endif %}
                             </button>
                             {% endif %}
                         {% elif relationship_ctx.is_following %}
-                        <button data-follow-btn data-is-following="true" class="bg-white/10 text-white font-bold uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2 text-sm md:text-base">
+                        <button data-follow-btn data-is-following="true" class="bg-white/10 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-white/15 transition flex items-center justify-center gap-2 text-sm">
                             <i class="fa-solid fa-user-check"></i> Following
                         </button>
                         {% endif %}
                         {% if relationship_ctx.can_recruit %}
-                        <button data-career-deep-link class="bg-z-purple/20 text-z-purple border border-z-purple/50 font-black font-display uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-z-purple hover:text-white transition flex items-center justify-center gap-2 text-sm md:text-base">
+                        <button data-career-deep-link class="border border-white/20 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-white/10 transition flex items-center justify-center gap-2 text-sm">
                             <i class="fa-solid fa-file-signature"></i> Recruit
                         </button>
                         {% endif %}
                     {% endif %}
                     <div class="flex gap-2">
                         {% if preferred_contact.href and not relationship_ctx.show_edit_button %}
-                        <a href="{{ preferred_contact.href }}" target="_blank" rel="noopener" class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-5 md:px-6 py-2.5 md:py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2 text-sm md:text-base">
+                        <a href="{{ preferred_contact.href }}" target="_blank" rel="noopener" class="flex-1 border border-white/20 text-white px-5 py-2.5 rounded-xl hover:bg-white/10 transition font-semibold flex items-center justify-center gap-2 text-sm">
                             <i class="{{ preferred_contact.icon }}"></i> Connect
                         </a>
                         {% endif %}
-                        <button class="bg-white/5 text-white border border-white/10 px-4 md:px-5 py-2.5 md:py-3 rounded-xl hover:bg-white/10 transition text-sm md:text-base">
-                            <i class="fa-solid fa-share-nodes"></i>
+                        <button type="button" data-share-profile aria-label="Copy profile link" title="Copy profile link" class="bg-white/5 text-white border border-white/10 px-4 py-2.5 rounded-xl hover:bg-white/10 transition text-sm">
+                            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
                         </button>
                         {% if relationship_ctx.show_edit_button %}
                         <a href="?view=spectator" title="See how others view your profile"
-                           class="bg-white/5 text-gray-400 border border-white/10 px-3 py-2.5 md:py-3 rounded-xl hover:bg-white/10 hover:text-white transition text-sm" aria-label="Spectator view">
+                           class="bg-white/5 text-gray-400 border border-white/10 px-3 py-2.5 rounded-xl hover:bg-white/10 hover:text-white transition text-sm" aria-label="Preview how others see your profile">
                             <i class="fa-solid fa-eye"></i>
                         </a>
                         {% endif %}
@@ -416,18 +424,19 @@
         <div class="flex items-center justify-between gap-4 px-5 py-3 rounded-xl border border-z-cyan/20 bg-z-cyan/5 text-z-cyan text-sm font-medium">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-eye text-xs"></i>
-                <span>Spectator view &mdash; this is how others see your profile. Private content and edit controls are hidden.</span>
+                <span>Preview &mdash; this is how other people see your profile. Private details and edit controls are hidden.</span>
             </div>
             <a href="{{ request.path }}" class="shrink-0 text-xs font-bold hover:text-white transition border border-z-cyan/30 px-3 py-1 rounded-lg">
-                Exit spectator view
+                Exit preview
             </a>
         </div>
     </div>
     {% endif %}
 
-    <div class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 dashboard-grid">
+    <div class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 dashboard-grid{% if not relationship_ctx.is_owner and not is_owner and not discord_handle and not discord_url and not social_links_renderable and not hardware_gears and not hardware_loadout.is_complete %} dashboard-grid--no-left{% endif %}">
 
-        <aside class="space-y-6 order-2 lg:order-1 lg:col-span-1">
+        {% if relationship_ctx.is_owner or is_owner or discord_handle or discord_url or social_links_renderable or hardware_gears or hardware_loadout.is_complete %}
+        <aside id="left-sidebar" aria-label="Links, gear and wallet" class="space-y-6 order-2 lg:order-1 lg:col-span-1">
             
             {% if is_owner and completion_data %}
             {# UP PHASE 8: Real Profile Completion Widget (Owner Only) #}
@@ -435,7 +444,7 @@
                 <div class="absolute -right-8 -top-8 bg-gradient-to-br from-z-gold/20 to-transparent w-32 h-32 rounded-full blur-2xl"></div>
                 
                 <div class="flex justify-between items-center mb-4 relative z-10">
-                    <h3 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h3>
+                    <h2 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h2>
                     <div class="px-2 py-1 rounded text-xs font-bold border" style="background: rgba(255, 214, 10, 0.2); color: #FFD60A; border-color: rgba(255, 214, 10, 0.35);">{{ completion_percentage }}%</div>
                 </div>
                 
@@ -448,7 +457,7 @@
                     Complete your <span class="text-white font-bold">{{ completion_data.next_action.label }}</span> to boost your profile.
                 </p>
                 <a href="{{ completion_data.next_action.url }}" class="block w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-z-gold hover:text-black hover:border-z-gold transition uppercase text-center">
-                    <i class="{{ completion_data.next_action.icon }} mr-2"></i>Complete Now
+                    <i class="fa-solid fa-arrow-right mr-2" aria-hidden="true"></i>Complete now
                 </a>
                 {% else %}
                 <p class="text-xs text-green-400 mb-4">
@@ -458,12 +467,13 @@
             </div>
             {% endif %}
 
-            {# UP PHASE 8: Connect Widget - Now Public #}
+            {# Connect: public, shown only when there is something to connect to (or to the owner) #}
+            {% if relationship_ctx.is_owner or is_owner or discord_handle or discord_url or social_links_renderable %}
             <div class="glass-panel p-6 rounded-2xl">
                 <div class="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-link text-z-cyan"></i> Connect
-                    </h3>
+                    </h2>
                 </div>
 
                 {# Discord-First Row with proper copy button #}
@@ -535,17 +545,19 @@
                 </div>
 
                 {% if not social_links and not social_links_map.discord %}
-                <div class="text-center text-gray-500 text-xs py-4 italic">No social links connected</div>
+                <div class="text-center text-gray-400 text-sm py-2">No social links yet.{% if relationship_ctx.is_owner or is_owner %} <a href="/me/settings/" class="underline text-z-cyan">Add links</a>{% endif %}</div>
                 {% endif %}
             </div>
+            {% endif %}
 
             {# UP PHASE 8: Gear Widget — navigates to Gear tab; shows hardware_loadout fallback #}
-            <div class="glass-panel p-5 rounded-2xl group cursor-pointer hover:border-z-green/30 transition"
-                 data-profile-tab-target="gear" role="button" tabindex="0" aria-label="View gear setup">
+            {% if relationship_ctx.is_owner or is_owner or hardware_gears or hardware_loadout.is_complete %}
+            <div class="glass-panel p-5 rounded-2xl group hover:border-white/30 transition{% if hardware_gears or hardware_loadout.is_complete %} cursor-pointer{% endif %}"
+                 {% if hardware_gears or hardware_loadout.is_complete %}data-profile-tab-target="gear" role="button" tabindex="0" aria-label="View gear setup"{% endif %}>
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-microchip text-z-green"></i> Gear
-                    </h3>
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-z-cyan" aria-hidden="true"></i> Gear
+                    </h2>
                     <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 group-hover:text-z-green transition text-xs"></i>
                 </div>
                 <div class="space-y-2">
@@ -595,23 +607,27 @@
                     {% else %}
                     {# Empty state #}
                     <div class="text-center py-2">
-                        <div class="text-gray-600 text-xs italic">No loadout configured</div>
+                        <div class="text-gray-400 text-sm">No gear added yet.</div>
                         {% if relationship_ctx.is_owner %}
-                        <a href="/me/settings/#loadout" class="text-[10px] text-z-green hover:underline mt-1 block font-medium">Add Gear &rarr;</a>
+                        <a href="/me/settings/#loadout" class="text-xs text-z-cyan hover:underline mt-1 block font-medium">Add gear</a>
                         {% endif %}
                     </div>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="glass-panel p-0 rounded-2xl overflow-hidden relative group {% if relationship_ctx.is_owner %}cursor-pointer{% endif %} border border-z-gold/30"
+            {% endif %}
+
+            {# Wallet is private: it is rendered for the owner only #}
+            {% if relationship_ctx.is_owner or is_owner %}
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden relative group cursor-pointer border border-z-gold/30"
                  {% if relationship_ctx.is_owner %}data-profile-tab-target="economy" role="button" tabindex="0" aria-label="View wallet and economy"{% endif %}>
                 <div class="absolute inset-0 bg-gradient-to-br from-z-gold/10 via-z-bg to-z-bg group-hover:from-z-gold/20 transition duration-500"></div>
                 
                 <div class="p-6 relative z-10">
                     <div class="flex justify-between items-center mb-2">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-z-gold/20 flex items-center justify-center border border-z-gold/50 text-z-gold shadow-[0_0_15px_rgba(255,214,10,0.4)]">
+                            <div class="w-8 h-8 rounded-full bg-z-gold/20 flex items-center justify-center border border-z-gold/50 text-z-gold ">
                                 <i class="fa-solid fa-coins"></i>
                             </div>
                             <span class="text-xs font-bold text-z-gold uppercase tracking-wider">Wallet</span>
@@ -627,18 +643,13 @@
                             <span class="text-sm font-sans text-z-gold font-bold mb-1">{{ brand.features.coins }}</span>
                         </div>
                     </div>
-
-
-                    {% else %}
-                    <div class="mt-4 text-center py-6">
-                        <i class="fa-solid fa-lock text-3xl text-gray-600 mb-2"></i>
-                        <div class="text-xs text-gray-500 italic">Wallet balance is private</div>
-                    </div>
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
 
         </aside>
+        {% endif %}
 
 
         <section id="center-column" class="space-y-6 order-1 lg:order-2 lg:col-span-1 min-w-0 transition-all duration-500">
@@ -790,7 +801,7 @@
               <div id="tab-fade-l" class="pointer-events-none absolute left-0 top-0 bottom-2 w-10 bg-gradient-to-r from-black/80 to-transparent z-10 transition-opacity opacity-0"></div>
               <div id="tab-fade-r" class="pointer-events-none absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-black/80 to-transparent z-10 transition-opacity"></div>
               <nav id="tab-nav-bar" class="flex overflow-x-auto pb-2 scrollbar-hide gap-1.5 border-b border-white/10 scroll-smooth">
-                <button data-click="switchTab" data-click-args='["overview"]' data-tab="overview" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
+                <button data-click="switchTab" data-click-args='["overview"]' data-tab="overview" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-semibold text-sm">Overview</button>
                 <button data-click="switchTab" data-click-args='["posts"]' data-tab="posts" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
                 <button data-click="switchTab" data-click-args='["career"]' data-tab="career" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
                 <button data-click="switchTab" data-click-args='["highlights"]' data-tab="highlights" class="tab-btn shrink-0 px-5 py-2.5 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
@@ -845,14 +856,15 @@
         </section>
 
 
-        <aside id="right-sidebar" class="space-y-6 order-3 lg:col-span-1 transition-all duration-500">
+        <aside id="right-sidebar" aria-label="Streams, teams and trophies" class="space-y-6 order-3 lg:col-span-1 transition-all duration-500">
             
-            {# UP PHASE 8: Live Section - Wired to Stream Settings #}
+            {# Streams: shown only when configured (or to the owner, to add one) #}
+            {% if stream_platforms or is_owner %}
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-tower-broadcast text-z-red"></i> Live
-                    </h3>
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-tower-broadcast text-z-cyan" aria-hidden="true"></i> Streams
+                    </h2>
                 </div>
                 
                 {% if stream_platforms %}
@@ -861,19 +873,19 @@
                         <a href="{{ platform.url }}" target="_blank" rel="noopener" class="block bg-black/40 rounded-xl p-4 border border-white/10 hover:border-z-red/50 transition group">
                             <div class="flex items-center gap-3">
                                 {% if platform.platform == 'twitch' %}
-                                <div class="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-white">
+                                <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white">
                                     <i class="fa-brands fa-twitch"></i>
                                 </div>
                                 {% elif platform.platform == 'youtube' %}
-                                <div class="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center text-white">
+                                <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white">
                                     <i class="fa-brands fa-youtube"></i>
                                 </div>
                                 {% elif platform.platform == 'kick' %}
-                                <div class="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center text-white">
+                                <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white">
                                     <i class="fa-solid fa-k"></i>
                                 </div>
                                 {% else %}
-                                <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+                                <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white">
                                     <i class="fa-brands fa-facebook"></i>
                                 </div>
                                 {% endif %}
@@ -891,20 +903,22 @@
                 {% else %}
                     <div class="bg-black/40 rounded-xl p-6 border border-white/10 text-center">
                         <i class="fa-solid fa-video-slash text-3xl text-gray-600 mb-2 block"></i>
-                        <div class="text-sm text-gray-400 mb-1">No stream configured</div>
+                        <div class="text-sm text-gray-400 mb-1">No stream added yet.</div>
                         {% if is_owner %}
-                        <a href="/me/settings/#stream" class="text-xs text-z-cyan hover:underline">Add Stream Settings</a>
+                        <a href="/me/settings/#stream" class="text-xs text-z-cyan hover:underline">Add a stream</a>
                         {% endif %}
                     </div>
                 {% endif %}
             </div>
+            {% endif %}
 
             {# ── 1. Affiliations ──────────────────────────────────────────────── #}
+            {% if user_teams or is_owner %}
             <div class="glass-panel p-5 rounded-2xl">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-users text-z-cyan"></i> Teams
-                    </h3>
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-users text-z-cyan" aria-hidden="true"></i> Teams
+                    </h2>
                 </div>
                 {% if user_teams %}
                 <div class="space-y-2">
@@ -933,20 +947,22 @@
                 {% else %}
                 <div class="text-center py-4">
                     <div class="text-gray-600 text-2xl mb-1.5"><i class="fa-solid fa-users-slash"></i></div>
-                    <div class="text-xs text-gray-500">No team affiliations yet</div>
+                    <div class="text-sm text-gray-400">Not on a team yet.</div>
                 </div>
                 {% endif %}
             </div>
+            {% endif %}
 
             {# ── 2. Trophy Cabinet (featured first, no hidden) ─────────────────── #}
 
             {# Uses sidebar_achievements_data: hidden removed, featured sorted first #}
-            <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-z-gold/30 transition"
+            {% if sidebar_achievements_data or is_owner %}
+            <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-white/30 transition"
                  data-profile-tab-target="achievements" role="button" tabindex="0" aria-label="View achievements">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-trophy text-z-gold"></i> Trophy Cabinet
-                    </h3>
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-z-gold" aria-hidden="true"></i> Trophies
+                    </h2>
                     <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 text-xs"></i>
                 </div>
                 {% if sidebar_achievements_data %}
@@ -977,44 +993,14 @@
                 {% else %}
                 <div class="text-center py-3">
                     <div class="text-gray-600 text-2xl mb-1.5"><i class="fa-regular fa-star"></i></div>
-                    <div class="text-xs text-gray-500">No trophies yet</div>
-                    <div class="text-[10px] text-gray-600 mt-0.5">Appear after verified tournament results</div>
+                    <div class="text-sm text-gray-400">No trophies yet.</div>
+                    <div class="text-xs text-gray-500 mt-0.5">They appear after verified tournament results.</div>
                 </div>
                 {% endif %}
             </div>
 
-            {# ── 4. Career widget (moved from overview body) ─────────────────── #}
-            <div class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-z-gold/30 transition"
-                 data-profile-tab-target="career" role="button" tabindex="0" aria-label="View career">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-ranking-star text-z-gold"></i> Career
-                    </h3>
-                    <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 text-xs"></i>
-                </div>
-                {% if user_teams %}
-                <div class="space-y-2">
-                    {% for team in user_teams|slice:":2" %}
-                    <a href="{{ team.url }}" class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition no-underline">
-                        {% if team.logo_url %}
-                        <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0">
-                        {% else %}
-                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-black text-white text-[10px] shrink-0">{{ team.tag|default:team.name|slice:":2"|upper }}</div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xs font-bold text-white truncate">{{ team.name }}</div>
-                            <div class="text-[10px] text-z-green font-bold uppercase">{{ team.role|default:'Member' }}{% if team.game %} &middot; {{ team.game }}{% endif %}</div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-3">
-                    <div class="text-gray-600 text-xl mb-1"><i class="fa-solid fa-users-slash"></i></div>
-                    <div class="text-[11px] text-gray-500">No team affiliations yet</div>
-                </div>
-                {% endif %}
-            </div>
+            {# Career repeated the Teams card; the Career tab holds the full history. #}
+            {% endif %}
 
             {# ── 5. Game Passports widget (moved from overview body) ──────────── #}
             {% if is_owner or permissions.can_view_game_passports %}
@@ -1022,11 +1008,11 @@
             {% if all_passports_sb %}
             <div class="glass-panel p-5 rounded-2xl">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-id-card text-z-purple"></i> Game Passports
-                    </h3>
+                    <h2 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-z-cyan" aria-hidden="true"></i> Game passports
+                    </h2>
                     <span class="text-[9px] text-gray-500">
-                        {% if is_owner %}{{ all_passports_sb|length }} linked{% else %}verified IDs{% endif %}
+                        {% if is_owner %}{{ all_passports_sb|length }} linked{% else %}In-game IDs{% endif %}
                     </span>
                 </div>
                 <div class="space-y-1.5">
@@ -1063,16 +1049,15 @@
 
             {# ── 6. Public visitor Follow CTA ─────────────────────────────────── #}
             {% if not relationship_ctx.is_owner and not relationship_ctx.is_following %}
-            <div class="glass-panel p-5 rounded-2xl border border-z-cyan/10 text-center">
-                <div class="text-z-cyan text-lg mb-1.5"><i class="fa-solid fa-user-plus"></i></div>
-                <div class="text-xs text-gray-400 mb-3">Follow {{ profile_user.username }} for competitive updates</div>
+            <div class="glass-panel p-5 rounded-2xl text-center">
+                <div class="text-sm text-gray-300 mb-3">Follow {{ profile_user.username }} to see their tournament results and team changes.</div>
                 {% if user.is_authenticated %}
-                <button class="w-full py-2 rounded-xl bg-z-cyan/15 border border-z-cyan/40 text-z-cyan text-xs font-bold hover:bg-z-cyan/25 transition follow-btn" data-target-user="{{ profile_user.username }}">
+                <button class="w-full py-2.5 rounded-xl bg-z-cyan text-black text-sm font-semibold hover:brightness-110 transition follow-btn" data-follow-btn data-follow-extra-class="w-full" data-is-following="false" data-target-user="{{ profile_user.username }}">
                     Follow
                 </button>
                 {% else %}
-                <a href="{% url 'account:login' %}?next={{ request.path }}" class="block w-full py-2 rounded-xl bg-z-cyan/15 border border-z-cyan/40 text-z-cyan text-xs font-bold hover:bg-z-cyan/25 transition">
-                    Sign in to Follow
+                <a href="{% url 'account:login' %}?next={{ request.path }}" class="block w-full py-3 rounded-xl bg-z-cyan text-black text-sm font-semibold hover:brightness-110 transition">
+                    Sign in to follow
                 </a>
                 {% endif %}
             </div>
@@ -1082,18 +1067,34 @@
 
     </div>
 
-    <div class="lg:hidden fixed bottom-0 left-0 w-full glass-panel border-t border-white/10 z-50 px-6 py-4 flex justify-between items-center text-2xl text-gray-500 pb-safe">
-        <button class="text-z-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]"><i class="fa-solid fa-user"></i></button>
-        <button class="hover:text-white transition"><i class="fa-solid fa-users"></i></button>
-        <div class="w-14 h-14 bg-gradient-to-br from-z-cyan to-z-purple rounded-full -mt-10 border-4 border-z-bg flex items-center justify-center text-white shadow-neon-purple hover:scale-110 transition cursor-pointer">
-            <i class="fa-solid fa-plus text-xl"></i>
-        </div>
-        <button class="hover:text-white transition"><i class="fa-solid fa-trophy"></i></button>
-        <button class="hover:text-white transition"><i class="fa-solid fa-bars"></i></button>
     </div>
-
-</div>
 <!-- End Zenith Profile Wrapper -->
+
+<noscript><style>.dashboard-grid > #left-sidebar, .dashboard-grid > #right-sidebar { visibility: visible !important; }</style></noscript>
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    function ready() { var g = document.querySelector('.dashboard-grid'); if (g) g.classList.add('dg-ready'); }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', ready); } else { ready(); }
+})();
+</script>
+
+<script nonce="{{ request.csp_nonce }}">
+(function () {
+    var btn = document.querySelector('[data-share-profile]');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var url = window.location.origin + window.location.pathname;
+        if (navigator.share) { navigator.share({ title: document.title, url: url }).catch(function () {}); return; }
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(function () {
+                btn.setAttribute('aria-label', 'Profile link copied');
+                btn.title = 'Profile link copied';
+                setTimeout(function () { btn.setAttribute('aria-label', 'Copy profile link'); btn.title = 'Copy profile link'; }, 2000);
+            }).catch(function () {});
+        }
+    });
+})();
+</script>
 
 <!-- REMOVED 2026-01-22: Followers/Following modals removed due to persistent 410 Gone caching issues -->
 
@@ -1129,104 +1130,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-{# UP PHASE 8: Follow/Unfollow AJAX Handler #}
+{# Career deep link (follow handling lives in follow.js) #}
 <script nonce="{{ request.csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
-    const followBtn = document.querySelector('[data-follow-btn]');
-    if (!followBtn) return;
-    
-    const username = '{{ profile_user.username }}';
-    const csrfToken = '{{ csrf_token }}';
-    
-    // Handle follow/unfollow clicks
-    followBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const isFollowing = followBtn.dataset.isFollowing === 'true';
-        const action = isFollowing ? 'unfollow' : 'follow';
-        const url = `/api/profile/${username}/${action}/`;
-        
-        // Disable button during request
-        followBtn.disabled = true;
-        followBtn.style.opacity = '0.6';
-        followBtn.style.cursor = 'wait';
-        
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update button state
-                if (data.is_following) {
-                    // Now following
-                    followBtn.dataset.isFollowing = 'true';
-                    followBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
-                    followBtn.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
-                } else if (data.has_pending_request) {
-                    // Request sent
-                    followBtn.disabled = true;
-                    followBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
-                    followBtn.className = 'bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2';
-                } else {
-                    // Not following
-                    followBtn.dataset.isFollowing = 'false';
-                    followBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Follow';
-                    followBtn.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
-                }
-                
-                // Update follower count if visible
-                if (data.show_follower_count) {
-                    const followerCountEl = document.querySelector('[data-follower-count]');
-                    if (followerCountEl) {
-                        followerCountEl.textContent = data.follower_count.toLocaleString();
-                    }
-                }
-                
-                // Show toast notification
-                showToast(data.message, 'success');
-            } else {
-                showToast(data.error || 'An error occurred', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Follow error:', error);
-            showToast('Network error. Please try again.', 'error');
-        })
-        .finally(() => {
-            // Re-enable button
-            followBtn.disabled = false;
-            followBtn.style.opacity = '1';
-            followBtn.style.cursor = 'pointer';
-        });
-    });
-    
-    // Toast notification function
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-xl shadow-2xl transform translate-y-0 transition-all duration-300 ${
-            type === 'success' ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'
-        }`;
-        toast.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} text-xl"></i>
-                <span class="font-medium">${message}</span>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.transform = 'translateY(100px)';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-    
+    // Follow / unfollow / cancel-request is handled once by static/siteui/js/follow.js. A second handler here used to
+    // send every click twice (two POSTs) and restyle the button with the old classes.
+
     // Deep link to Career tab
     const careerDeepLinkBtns = document.querySelectorAll('[data-career-deep-link]');
     careerDeepLinkBtns.forEach(btn => {

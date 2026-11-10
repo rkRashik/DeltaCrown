@@ -1,52 +1,50 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Private Profile - {{ brand.name }}{% endblock %}
+{% block title %}@{{ profile_user.username }} is private | {{ brand.name }}{% endblock %}
+{% block body_class %}ol-identity{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-2xl mx-auto text-center">
-        <div class="bg-gray-800 rounded-lg p-8 shadow-xl">
-            <svg class="w-24 h-24 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+{# Shown instead of the profile when the account is private and the viewer may not see it: no profile data is rendered here. #}
+<div class="container mx-auto px-4 py-10">
+    <div class="max-w-xl mx-auto text-center">
+        <div class="rounded-2xl p-8 border" style="background:#17181A;border-color:#38332C;">
+            <svg class="w-16 h-16 mx-auto mb-4" style="color:#A7A198;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
             </svg>
-            
-            <h1 class="text-3xl font-bold text-white mb-4">Private Profile</h1>
-            
-            <p class="text-gray-400 text-lg mb-2">
-                @{{ profile_user.username }}'s account is private.
-            </p>
-            
+
+            <h1 class="text-2xl font-bold mb-2" style="color:#F6F1E7;">This profile is private</h1>
+
+            <p class="text-base mb-2" style="color:#D9D3C7;">@{{ profile_user.username }} only shares their profile with people they approve.</p>
+
             {% if has_pending_request %}
-                <p class="text-yellow-400 text-sm mb-4">
-                    <i class="fa-solid fa-clock"></i> Your follow request is pending approval.
+                <p id="follow-request-note" class="text-sm mb-6" style="color:#E2B761;">
+                    <i class="fa-solid fa-clock" aria-hidden="true"></i> Your follow request is waiting for approval.
+                </p>
+            {% else %}
+                <p id="follow-request-note" class="text-sm mb-6" style="color:#A7A198;" role="status" aria-live="polite">
+                    {% if viewer_role == 'anonymous' %}
+                        Sign in and send a follow request to see this profile.
+                    {% elif viewer_role == 'visitor' %}
+                        Send a follow request to see their profile, game IDs and match history.
+                    {% else %}
+                        You do not have permission to view this profile.
+                    {% endif %}
                 </p>
             {% endif %}
-            
-            <p class="text-gray-500 text-sm mb-8">
+
+            <div class="mt-6">
                 {% if viewer_role == 'anonymous' %}
-                    Log in to send a follow request and view this profile.
-                {% elif has_pending_request %}
-                    Once approved, you'll be able to see their profile, loadouts, and match history.
-                {% elif viewer_role == 'visitor' %}
-                    Send a follow request to view this profile.
-                {% else %}
-                    You do not have permission to view this profile.
-                {% endif %}
-            </p>
-            
-            <div class="mt-8">
-                {% if viewer_role == 'anonymous' %}
-                    <a href="/account/login/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition">
-                        <i class="fa-solid fa-sign-in-alt mr-2"></i>Log In
+                    <a href="/account/login/?next={{ request.path|urlencode }}" class="inline-flex items-center justify-center min-h-[44px] px-6 rounded-xl font-semibold text-sm" style="background:#E2B761;color:#0B0C0C;">
+                        Sign in to send a request
                     </a>
                 {% elif viewer_role == 'visitor' and not has_pending_request %}
-                    <button data-click="sendFollowRequest" id="follow-request-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition">
-                        <i class="fa-solid fa-user-plus mr-2"></i>Send Follow Request
+                    <button type="button" data-click="sendFollowRequest" id="follow-request-btn" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-xl font-semibold text-sm" style="background:#E2B761;color:#0B0C0C;">
+                        <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Send follow request
                     </button>
                 {% elif has_pending_request %}
-                    <button disabled class="bg-yellow-500/30 text-yellow-400 font-semibold px-6 py-3 rounded-lg cursor-not-allowed">
-                        <i class="fa-solid fa-clock mr-2"></i>Request Pending
+                    <button type="button" disabled class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-xl font-semibold text-sm cursor-not-allowed" style="background:#232427;color:#A7A198;">
+                        <i class="fa-solid fa-clock" aria-hidden="true"></i> Request pending
                     </button>
                 {% endif %}
             </div>
@@ -57,34 +55,38 @@
 <script nonce="{{ request.csp_nonce }}">
 async function sendFollowRequest() {
     const btn = document.getElementById('follow-request-btn');
+    const note = document.getElementById('follow-request-note');
+    if (!btn || btn.disabled) return;
+    const meta = document.querySelector('meta[name="csrf-token"]');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Sending...';
-    
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Sending…';
+
     try {
-        const response = await fetch('/profiles/{{ profile_user.username }}/follow/', {
+        // Same endpoint the profile page uses (static/siteui/js/follow.js)
+        const response = await fetch('/api/profile/{{ profile_user.username|escapejs }}/follow/', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
+                'X-CSRFToken': (meta && meta.content) || '{{ csrf_token }}',
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'same-origin'
         });
-        
-        const data = await response.json();
-        
-        if (data.success && data.action === 'request_sent') {
-            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Request Sent!';
-            btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-            btn.classList.add('bg-yellow-500/30', 'text-yellow-400', 'cursor-not-allowed');
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fa-solid fa-clock mr-2"></i>Request Pending';
-            }, 2000);
+        let data = {};
+        try { data = await response.json(); } catch (e) { /* non-JSON error page */ }
+
+        if (response.ok && data.action === 'request_sent') {
+            btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> Request pending';
+            btn.style.background = '#232427';
+            btn.style.color = '#A7A198';
+            btn.classList.add('cursor-not-allowed');
+            if (note) { note.style.color = '#E2B761'; note.textContent = 'Request sent. You will see their profile once it is approved.'; }
         } else {
-            throw new Error(data.error || 'Failed to send request');
+            throw new Error(data.error || 'The request could not be sent.');
         }
     } catch (err) {
-        alert('Failed to send follow request: ' + err.message);
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i>Send Follow Request';
+        btn.innerHTML = '<i class="fa-solid fa-user-plus" aria-hidden="true"></i> Send follow request';
+        if (note) { note.style.color = '#E5484D'; note.setAttribute('role', 'alert'); note.textContent = (err && err.message) || 'The request could not be sent.'; }
     }
 }
 </script>

@@ -7,14 +7,14 @@ from apps.common.media_urls import field_file_url, normalize_media_url
 
 register = template.Library()
 
-# Esports-themed gradient colors for initials avatars
+# Muted brand-compatible tones for initials avatars (ivory text stays readable on all of them).
 AVATAR_GRADIENTS = [
-    ("00D9FF", "A100FF"),  # Cyan to Purple
-    ("FF0080", "FF8C00"),  # Pink to Orange
-    ("00FF88", "00D9FF"),  # Green to Cyan
-    ("A100FF", "FF0080"),  # Purple to Pink
-    ("FFD700", "FF6B00"),  # Gold to Orange
-    ("00FFF0", "0099FF"),  # Turquoise to Blue
+    ("6B5428", "9A7A3A"),  # bronze
+    ("3A4A5C", "586E86"),  # slate
+    ("4A3A5C", "6E5A86"),  # plum
+    ("2F4F46", "4C7A6B"),  # pine
+    ("5C3A3A", "864F4F"),  # clay
+    ("3F3F3F", "666666"),  # graphite
 ]
 
 def _get_user_initials(user):
@@ -50,7 +50,7 @@ def _generate_initials_avatar(user):
         </defs>
         <rect width='100' height='100' fill='url(#grad{user_id})'/>
         <text x='50' y='50' font-family='Arial,sans-serif' font-size='45' font-weight='700' 
-              fill='white' text-anchor='middle' dominant-baseline='central'>{initials}</text>
+              fill='#F6F1E7' text-anchor='middle' dominant-baseline='central'>{initials}</text>
     </svg>"""
     
     return f"data:image/svg+xml;utf8,{quote(svg)}"

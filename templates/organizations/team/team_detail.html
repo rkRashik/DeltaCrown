@@ -3,6 +3,8 @@
 
 {% block title %}{% if page.title %}{{ page.title }}{% else %}Team Detail | {{ brand.name }}{% endif %}{% endblock %}
 
+{% block body_class %}ol-identity{% endblock %}
+
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'dashboard/competitive-design-system.css' %}?v=20260518-x1">
   {% include "organizations/team/partials/_head_assets.html" %}

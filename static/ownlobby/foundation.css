@@ -268,39 +268,51 @@ body .ol-footer-legacy { background-color: var(--ol-canvas); }
 .ol-input, .ol-select, .ol-textarea { margin: 0; box-sizing: border-box; }
 .ol-input[type="search"] { -webkit-appearance: none; appearance: none; }
 
+/* Competitive tiers: one palette for every page that shows a tier. Each colour has its RGB triple (for tinted
+   backgrounds) next to it so the two cannot drift apart, and each reads >= 4.5:1 on a 12% tinted badge over the
+   surface. Tier colours carry meaning, so they are not part of the saffron/ember accent. */
+:root {
+  --ol-tier-crown: #CFA75A;      --ol-tier-crown-rgb: 207, 167, 90;
+  --ol-tier-legend: #E5902F;     --ol-tier-legend-rgb: 229, 144, 47;
+  --ol-tier-master: #E4608E;     --ol-tier-master-rgb: 228, 96, 142;
+  --ol-tier-elite: #3EA7FF;      --ol-tier-elite-rgb: 62, 167, 255;
+  --ol-tier-challenger: #9C8CFF; --ol-tier-challenger-rgb: 156, 140, 255;
+  --ol-tier-rookie: #94A3B8;     --ol-tier-rookie-rgb: 148, 163, 184;
+}
+
 /* =====================================================================
    Tournament page family (Sprint 1 / Batch C): detail, bracket, results, leaderboard, match, groups, spectator.
    One accent (saffron) for actions; colour only for status. Legacy Tailwind utilities on these templates are
-   re-skinned here so the markup stays untouched. Scope: <body class="ol-tourney">.
+   re-skinned here so the markup stays untouched. Scope: <body class="ol-tourney"> (tournaments) and <body class="ol-identity"> (profiles, teams, organizations, rankings).
    ===================================================================== */
-.ol-tourney { background: var(--ol-canvas); color: var(--ol-text); }
-.ol-tourney .grain-overlay, .ol-tourney .noise-overlay { display: none; }
-.ol-tourney .font-display, .ol-tourney .font-gaming, .ol-tourney .font-tech, .ol-tourney .arena-font-tech { font-family: var(--ol-font, Inter, system-ui, sans-serif); }
-.ol-tourney .font-black { font-weight: 700; }
-.ol-tourney .uppercase { text-transform: none; }
-.ol-tourney [class*="tracking-["], .ol-tourney [class*="tracking-wide"], .ol-tourney [class*="tracking-wider"], .ol-tourney [class*="tracking-widest"], .ol-tourney [class*="tracking-tight"] { letter-spacing: normal; }
-.ol-tourney [class*="text-[8px]"], .ol-tourney [class*="text-[9px]"], .ol-tourney [class*="text-[10px]"], .ol-tourney [class*="text-[11px]"] { font-size: .75rem; }
-.ol-tourney [class*="text-cyan-"], .ol-tourney [class*="text-sky-"], .ol-tourney [class*="text-blue-"], .ol-tourney [class*="text-purple-"], .ol-tourney [class*="text-violet-"], .ol-tourney [class*="text-fuchsia-"],
-.ol-tourney .text-dc-cyan, .ol-tourney .text-dc-purple, .ol-tourney .text-dc-gold { color: var(--ol-saffron); }
-.ol-tourney [class*="text-gray-5"], .ol-tourney [class*="text-gray-6"], .ol-tourney [class*="text-slate-5"], .ol-tourney [class*="text-slate-6"] { color: var(--ol-text-muted); }
-.ol-tourney [class*="bg-cyan-"], .ol-tourney [class*="bg-sky-"], .ol-tourney [class*="bg-blue-"], .ol-tourney [class*="bg-purple-"], .ol-tourney [class*="bg-violet-"], .ol-tourney [class*="bg-fuchsia-"],
-.ol-tourney [class*="bg-dc-cyan"], .ol-tourney [class*="bg-dc-purple"] { background-color: rgb(226 183 97 / .14); }
-.ol-tourney [class*="border-cyan-"], .ol-tourney [class*="border-sky-"], .ol-tourney [class*="border-blue-"], .ol-tourney [class*="border-purple-"], .ol-tourney [class*="border-violet-"] { border-color: rgb(226 183 97 / .35); }
-.ol-tourney [class*="shadow-["], .ol-tourney [class*="shadow-2xl"], .ol-tourney [class*="drop-shadow"] { box-shadow: none; filter: none; }
-.ol-tourney [class*="blur-["] { display: none; }
-.ol-tourney [class*="backdrop-blur"] { backdrop-filter: none; }
-.ol-tourney [class*="rounded-[2"], .ol-tourney [class*="rounded-[1.7"], .ol-tourney [class*="rounded-3xl"] { border-radius: var(--ol-radius-lg); }
-.ol-tourney .glass, .ol-tourney .glass-panel, .ol-tourney .glass-extreme, .ol-tourney .mood-surface { background: var(--ol-surface); background-image: none; border: 1px solid var(--ol-border); box-shadow: none; backdrop-filter: none; }
-:root[data-theme] .ol-tourney .glass, :root[data-theme] .ol-tourney .glass-panel, :root[data-theme] .ol-tourney .glass-extreme { background-image: none; }
-.ol-tourney a[class*="bg-dc-cyan"], .ol-tourney button[class*="bg-dc-cyan"] { background-color: var(--ol-saffron); color: var(--ol-canvas); }
+:is(.ol-tourney, .ol-identity) { background: var(--ol-canvas); color: var(--ol-text); }
+:is(.ol-tourney, .ol-identity) .grain-overlay, :is(.ol-tourney, .ol-identity) .noise-overlay { display: none; }
+:is(.ol-tourney, .ol-identity) .font-display, :is(.ol-tourney, .ol-identity) .font-gaming, :is(.ol-tourney, .ol-identity) .font-tech, :is(.ol-tourney, .ol-identity) .arena-font-tech { font-family: var(--ol-font, Inter, system-ui, sans-serif); }
+:is(.ol-tourney, .ol-identity) .font-black { font-weight: 700; }
+:is(.ol-tourney, .ol-identity) .uppercase { text-transform: none; }
+:is(.ol-tourney, .ol-identity) [class*="tracking-["], :is(.ol-tourney, .ol-identity) [class*="tracking-wide"], :is(.ol-tourney, .ol-identity) [class*="tracking-wider"], :is(.ol-tourney, .ol-identity) [class*="tracking-widest"], :is(.ol-tourney, .ol-identity) [class*="tracking-tight"] { letter-spacing: normal; }
+:is(.ol-tourney, .ol-identity) [class*="text-[8px]"], :is(.ol-tourney, .ol-identity) [class*="text-[9px]"], :is(.ol-tourney, .ol-identity) [class*="text-[10px]"], :is(.ol-tourney, .ol-identity) [class*="text-[11px]"] { font-size: .75rem; }
+:is(.ol-tourney, .ol-identity) [class*="text-cyan-"], :is(.ol-tourney, .ol-identity) [class*="text-sky-"], :is(.ol-tourney, .ol-identity) [class*="text-blue-"], :is(.ol-tourney, .ol-identity) [class*="text-purple-"], :is(.ol-tourney, .ol-identity) [class*="text-violet-"], :is(.ol-tourney, .ol-identity) [class*="text-fuchsia-"],
+:is(.ol-tourney, .ol-identity) .text-dc-cyan, :is(.ol-tourney, .ol-identity) .text-dc-purple, :is(.ol-tourney, .ol-identity) .text-dc-gold { color: var(--ol-saffron); }
+:is(.ol-tourney, .ol-identity) [class*="text-gray-5"], :is(.ol-tourney, .ol-identity) [class*="text-gray-6"], :is(.ol-tourney, .ol-identity) [class*="text-slate-5"], :is(.ol-tourney, .ol-identity) [class*="text-slate-6"] { color: var(--ol-text-muted); }
+:is(.ol-tourney, .ol-identity) [class*="bg-cyan-"], :is(.ol-tourney, .ol-identity) [class*="bg-sky-"], :is(.ol-tourney, .ol-identity) [class*="bg-blue-"], :is(.ol-tourney, .ol-identity) [class*="bg-purple-"], :is(.ol-tourney, .ol-identity) [class*="bg-violet-"], :is(.ol-tourney, .ol-identity) [class*="bg-fuchsia-"],
+:is(.ol-tourney, .ol-identity) [class*="bg-dc-cyan"], :is(.ol-tourney, .ol-identity) [class*="bg-dc-purple"] { background-color: rgb(226 183 97 / .14); }
+:is(.ol-tourney, .ol-identity) [class*="border-cyan-"], :is(.ol-tourney, .ol-identity) [class*="border-sky-"], :is(.ol-tourney, .ol-identity) [class*="border-blue-"], :is(.ol-tourney, .ol-identity) [class*="border-purple-"], :is(.ol-tourney, .ol-identity) [class*="border-violet-"] { border-color: rgb(226 183 97 / .35); }
+:is(.ol-tourney, .ol-identity) [class*="shadow-["], :is(.ol-tourney, .ol-identity) [class*="shadow-2xl"], :is(.ol-tourney, .ol-identity) [class*="drop-shadow"] { box-shadow: none; filter: none; }
+:is(.ol-tourney, .ol-identity) [class*="blur-["] { display: none; }
+:is(.ol-tourney, .ol-identity) [class*="backdrop-blur"] { backdrop-filter: none; }
+:is(.ol-tourney, .ol-identity) [class*="rounded-[2"], :is(.ol-tourney, .ol-identity) [class*="rounded-[1.7"], :is(.ol-tourney, .ol-identity) [class*="rounded-3xl"] { border-radius: var(--ol-radius-lg); }
+:is(.ol-tourney, .ol-identity) .glass, :is(.ol-tourney, .ol-identity) .glass-panel, :is(.ol-tourney, .ol-identity) .glass-extreme, :is(.ol-tourney, .ol-identity) .mood-surface { background: var(--ol-surface); background-image: none; border: 1px solid var(--ol-border); box-shadow: none; backdrop-filter: none; }
+:root[data-theme] :is(.ol-tourney, .ol-identity) .glass, :root[data-theme] :is(.ol-tourney, .ol-identity) .glass-panel, :root[data-theme] :is(.ol-tourney, .ol-identity) .glass-extreme { background-image: none; }
+:is(.ol-tourney, .ol-identity) a[class*="bg-dc-cyan"], :is(.ol-tourney, .ol-identity) button[class*="bg-dc-cyan"] { background-color: var(--ol-saffron); color: var(--ol-canvas); }
 /* Mobile tournament surfaces share the same fonts and neutral cards */
-.ol-tourney .tdm-mono, .ol-tourney .tdm-sora, .ol-tourney .arm-sora { font-family: var(--ol-font, Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
-.ol-tourney .tdm-card { background: var(--ol-surface); box-shadow: none; border: 1px solid var(--ol-border); }
-.ol-tourney #arm-root { background: var(--ol-canvas); }
-html body.ol-tourney { background-color: var(--ol-canvas); }
-.ol-tourney :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--ol-saffron); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .ol-tourney *, .ol-tourney *::before, .ol-tourney *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
-.ol-tourney [class*="text-yellow-"], .ol-tourney [class*="text-amber-"] { color: var(--ol-saffron); }
-.ol-tourney [class*="bg-yellow-"], .ol-tourney [class*="bg-amber-"] { background-color: rgb(226 183 97 / .14); }
-.ol-tourney [class*="border-yellow-"], .ol-tourney [class*="border-amber-"] { border-color: rgb(226 183 97 / .35); }
-.ol-tourney button[class*="bg-yellow-"]:not([class*="/"]), .ol-tourney a[class*="bg-yellow-"]:not([class*="/"]) { background-color: var(--ol-saffron); color: var(--ol-canvas); }
+:is(.ol-tourney, .ol-identity) .tdm-mono, :is(.ol-tourney, .ol-identity) .tdm-sora, :is(.ol-tourney, .ol-identity) .arm-sora { font-family: var(--ol-font, Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
+:is(.ol-tourney, .ol-identity) .tdm-card { background: var(--ol-surface); box-shadow: none; border: 1px solid var(--ol-border); }
+:is(.ol-tourney, .ol-identity) #arm-root { background: var(--ol-canvas); }
+html body:is(.ol-tourney, .ol-identity) { background-color: var(--ol-canvas); }
+:is(.ol-tourney, .ol-identity) :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--ol-saffron); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { :is(.ol-tourney, .ol-identity) *, :is(.ol-tourney, .ol-identity) *::before, :is(.ol-tourney, .ol-identity) *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+:is(.ol-tourney, .ol-identity) [class*="text-yellow-"], :is(.ol-tourney, .ol-identity) [class*="text-amber-"] { color: var(--ol-saffron); }
+:is(.ol-tourney, .ol-identity) [class*="bg-yellow-"], :is(.ol-tourney, .ol-identity) [class*="bg-amber-"] { background-color: rgb(226 183 97 / .14); }
+:is(.ol-tourney, .ol-identity) [class*="border-yellow-"], :is(.ol-tourney, .ol-identity) [class*="border-amber-"] { border-color: rgb(226 183 97 / .35); }
+:is(.ol-tourney, .ol-identity) button[class*="bg-yellow-"]:not([class*="/"]), :is(.ol-tourney, .ol-identity) a[class*="bg-yellow-"]:not([class*="/"]) { background-color: var(--ol-saffron); color: var(--ol-canvas); }
