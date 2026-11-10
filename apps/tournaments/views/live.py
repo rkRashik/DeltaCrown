@@ -1133,6 +1133,11 @@ class TournamentBracketView(DetailView):
             return "Tournament is still accepting registrations. Bracket will be generated once registration closes."
         
         if tournament.status == Tournament.REGISTRATION_CLOSED:
+            confirmed = tournament.registrations.filter(
+                status__in=(Registration.CONFIRMED, Registration.AUTO_APPROVED)
+            ).exists()
+            if not confirmed:
+                return "Registration is closed and no participants are confirmed, so there is no bracket to show."
             return "Bracket is being generated. Please check back soon."
         
         if not hasattr(tournament, 'bracket') or not tournament.bracket:

@@ -1,0 +1,16 @@
+{# Compact footer for sign-in and sign-up flows: legal links and official social accounts only. #}
+<footer class="ol-footer-legal" aria-label="Site footer">
+  <nav class="ol-footer-legal__links" aria-label="Legal and help">
+    <a href="/terms/">Terms of Service</a>
+    <a href="/privacy/">Privacy Policy</a>
+    <a href="/cookies/">Cookie Policy</a>
+    <a href="/faq/">FAQ</a>
+    <a href="/contact/">Contact support</a>
+  </nav>
+  <p class="ol-footer-legal__social">
+    {% if brand.social.facebook %}<a href="{{ brand.social.facebook }}" target="_blank" rel="noopener noreferrer">Facebook</a>{% endif %}
+    {% if brand.social.instagram %}<a href="{{ brand.social.instagram }}" target="_blank" rel="noopener noreferrer">Instagram</a>{% endif %}
+    {% if brand.social.discord %}<a href="{{ brand.social.discord }}" target="_blank" rel="noopener noreferrer">Discord</a>{% endif %}
+  </p>
+  <p class="ol-footer-legal__copy">&copy; {% now "Y" %} {{ brand.name }}</p>
+</footer>

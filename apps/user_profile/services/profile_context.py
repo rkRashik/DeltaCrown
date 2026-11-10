@@ -117,6 +117,86 @@ def build_public_profile_context_cached(
     return payload
 
 
+_BOUNTY_CTX_TTL_SECONDS = 60
+
+
+def build_public_bounty_context(profile_user) -> Dict[str, Any]:
+    """Bounty stats and the active/completed lists shown on a public profile (same data for every viewer)."""
+    from apps.user_profile.services import bounty_service
+    out: Dict[str, Any] = {}
+    
+    # Bounty stats
+    bounty_stats = bounty_service.get_user_bounty_stats(profile_user)
+    out['bounty_stats'] = {
+        'created_count': bounty_stats['created_count'],
+        'accepted_count': bounty_stats['accepted_count'],
+        'won_count': bounty_stats['won_count'],
+        'lost_count': bounty_stats['lost_count'],
+        'win_rate': bounty_stats['win_rate'],
+        'total_earnings': bounty_stats['total_earnings'],
+        'total_wagered': bounty_stats['total_wagered'],
+    }
+    
+    # Active bounties
+    active_bounties = bounty_service.get_active_bounties(profile_user)
+    out['active_bounties'] = [
+        {
+            'id': bounty.id,
+            'title': bounty.title,
+            'game': bounty.game.display_name if bounty.game else None,
+            'stake_amount': bounty.stake_amount,
+            'status': bounty.status,
+            'status_display': bounty.get_status_display(),
+            'creator': bounty.creator.username,
+            'creator_id': bounty.creator.id,
+            'acceptor': bounty.acceptor.username if bounty.acceptor else None,
+            'acceptor_id': bounty.acceptor.id if bounty.acceptor else None,
+            'created_at': bounty.created_at,
+            'expires_at': bounty.expires_at,
+            'is_expired': bounty.is_expired,
+            'can_dispute': bounty.can_dispute if hasattr(bounty, 'can_dispute') else False,
+            'challenge_type': getattr(bounty, 'challenge_type', 'solo'),
+            'creator_team': str(bounty.creator_team) if getattr(bounty, 'creator_team', None) else None,
+        }
+        for bounty in active_bounties[:10]
+    ]
+    
+    # Completed bounties (last 5 for profile display)
+    completed_bounties = bounty_service.get_completed_bounties(profile_user)
+    out['completed_bounties'] = [
+        {
+            'id': bounty.id,
+            'title': bounty.title,
+            'game': bounty.game.display_name if bounty.game else None,
+            'stake_amount': bounty.stake_amount,
+            'payout_amount': bounty.payout_amount,
+            'winner': bounty.winner.username if bounty.winner else None,
+            'completed_at': bounty.completed_at,
+            'was_winner': bounty.winner_id == profile_user.id if bounty.winner_id else False,
+            'challenge_type': getattr(bounty, 'challenge_type', 'solo'),
+        }
+        for bounty in completed_bounties[:5]
+    ]
+    return out
+
+
+def build_public_bounty_context_cached(profile_user, viewer_role: str) -> Dict[str, Any]:
+    """Short-lived cache around :func:`build_public_bounty_context`.
+
+    The owner always reads fresh data. Everyone else shares one entry per (username, profile version, role) for
+    60 seconds, so isolation matches the main profile cache and a version bump evicts it as well.
+    """
+    if viewer_role == 'owner':
+        return build_public_bounty_context(profile_user)
+    key = f'profile:bounty:{profile_user.username}:{_profile_cache_version(profile_user.username)}:{viewer_role}'
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    payload = build_public_bounty_context(profile_user)
+    cache.set(key, payload, _BOUNTY_CTX_TTL_SECONDS)
+    return payload
+
+
 # -----------------------------------------------------------------------------
 # Extended profile payload — all owner-invariant data fetched outside
 # build_public_profile_context. Caches everything as JSON-safe primitives;

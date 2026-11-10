@@ -482,6 +482,7 @@ TEMPLATES = [
                 "apps.common.context.ui_settings",
                 "apps.common.context_processors.game_assets_context",
                 "apps.common.context_processors.seo_context",
+                "apps.common.context_processors.site_footer",
                 "apps.common.brand_context.brand_context",
                 "apps.common.context_processors.static_version",  # P5.2 — {{ STATIC_VERSION }}
                 "apps.common.context_homepage.homepage_context",

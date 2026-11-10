@@ -66,7 +66,7 @@ class TOCSettingsService:
     OFFICIAL_SOCIAL_DEFAULTS = {
         "social_facebook": BRAND["social"]["facebook"],
         "social_discord": "https://discord.gg/UaHRC8Cd",
-        "social_youtube": "https://www.youtube.com/@DeltaCrownGG",
+        "social_youtube": "",  # no verified official YouTube channel; an empty default hides the link
         "social_instagram": BRAND["social"]["instagram"],
         "contact_phone": "+8801789560202",
         "social_website": "https://ownlobby.com",
