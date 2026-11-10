@@ -14478,36 +14478,6 @@
       "reason": "Historical implementation comment or documentation string."
     },
     {
-      "path": "templates/partials/backup_unused/jsonld_organization.html",
-      "line": 5,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "templates/partials/backup_unused/jsonld_organization.html",
-      "line": 7,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "templates/partials/backup_unused/jsonld_website.html",
-      "line": 5,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "templates/partials/backup_unused/mobile_nav.html",
-      "line": 8,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
-      "path": "templates/partials/backup_unused/mobile_nav.html",
-      "line": 9,
-      "classification": "intentionally_preserved",
-      "reason": "Migration, test contract, archive or historical project record."
-    },
-    {
       "path": "templates/partials/footer_industry.html",
       "line": 844,
       "classification": "requires_later_migration",

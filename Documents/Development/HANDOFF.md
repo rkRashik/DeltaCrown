@@ -1,10 +1,14 @@
 # OwnLobby conversation handoff
 
+**Current state, 2026-11-10:** production is LIVE on master `7afd6f68` (PRs #72-#82 merged; see [STATUS](STATUS.md#production-launch-of-public-uiux-sprint-1---2026-11-10)). Rollback target `044b9cfb`. Auto-deploy is OFF; every deploy is a manual, owner-approved Render action. Open: PR #77 (wallet PIN, not live) and Draft #47 (inactive). Next safe work: owner decision on #77, an atomic PIN lockout follow-up, Tailwind CDN removal plan, and the pending OL-01/OL-13 acceptance items in [BACKLOG](BACKLOG.md). The sections below this line are dated history; where they say "do not deploy master" they were superseded by the 2026-11-10 launch.
+
+## Historical continuation notes (superseded)
+
 **Current continuation, 2026-11-07 +06:00:** use existing `release/ownlobby-stability-20261106`, [Draft release PR #48](https://github.com/rkRashik/DeltaCrown/pull/48) to master; preserve Draft #43-#47. Code `0c38eefc` passes [27 focused tests/version](https://github.com/rkRashik/DeltaCrown/actions/runs/42279623098) on Linux Python 3.11.9/3.12 and [Linux release smoke](https://github.com/rkRashik/DeltaCrown/actions/runs/42279623093); no new template failures, synthetic homepage output identical with fewer cold queries. Owner permits a reversible release after safety gates, and will perform inaccessible Render Dashboard operations; do not request API keys. [STATUS](STATUS.md#release-preparation-2026-11-07-0600) contains evidence and consolidated health/rollback/host-window/synthetic-browser actions. Resolve these and measured activation budgets; do not repeat A6-A11 investigations or passing checks without a source change. Lifecycle stays OFF, no production change/merge/deploy occurred; live remains `f1f8d185` / `dep-dbhufde7bikc738137sg`. No success claim before deployment/live verification. Older next actions below are historical.
 
 **Current continuation, 2026-11-06 20:58 +06:00:** [Draft #46](https://github.com/rkRashik/DeltaCrown/pull/46), branch `candidate/ol-inc-01-a11b1-observation`, stacks on unchanged #45 `49a8a49f`. A11B-1's [single Linux matrix](https://github.com/rkRashik/DeltaCrown/actions/runs/42237893242) passes 23 focused tests on Python 3.11.9/3.12. HTTP/WS admission ownership, saturation observations and finite/blocked controls pass; resource/scheduling limitations are in STATUS. Do not repeat completed A6–A10 investigations. Next: owner review, then separately approved A11B-2 effective I/O bounds. Keep activation OFF: measured Render limits, host recovery/readiness and staging are unresolved. No automatic recovery, health bypass or production change. The A9 snapshot below is historical, not the current next action.
 
-Snapshot: 2026-11-06 15:11 +06:00 (Asia/Dhaka), OL-INC-01-A / A9 inactive extraction. Start with [STATUS](STATUS.md) and [BACKLOG](BACKLOG.md). **Do not deploy master.** This brief authorizes no production operation.
+Snapshot: 2026-11-06 15:11 +06:00 (Asia/Dhaka), OL-INC-01-A / A9 inactive extraction. Start with [STATUS](STATUS.md) and [BACKLOG](BACKLOG.md). *(2026-11-06; superseded by the 2026-11-10 launch.)* This brief authorizes no production operation.
 
 ## Current state
 
@@ -48,7 +52,8 @@ and BACKLOG.md. Read AGENTS.md and repository policy first. Inspect actual
 branch/HEAD, working tree, current master and relevant Issue #37/PR evidence.
 Preserve the stable OL task IDs and all owner-protected documents.
 PR #41 is merged: master 7e07d683. Production was owner-rolled-back to f1f8d185.
-DO NOT DEPLOY MASTER. Read OL-INC-01 evidence in STATUS and BACKLOG first.
+(Historical, 2026-11-06: do-not-deploy gate. Superseded: master 7afd6f68 is live since 2026-11-10; see STATUS.)
+Read OL-INC-01 evidence in STATUS and BACKLOG first.
 The shared ASGI cancellation stall reproduced locally in both releases;
 production attribution remains moderate-confidence, not a proven homepage bug.
 Review the separate A9 inactive extraction from master bec5a17b. Preserve

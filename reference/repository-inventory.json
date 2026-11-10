@@ -4640,21 +4640,6 @@
       "classification": "documentation/tool/config reference; selective review"
     },
     {
-      "path": "templates/partials/backup_unused/jsonld_organization.html",
-      "matches": 2,
-      "classification": "documentation/tool/config reference; selective review"
-    },
-    {
-      "path": "templates/partials/backup_unused/jsonld_website.html",
-      "matches": 1,
-      "classification": "documentation/tool/config reference; selective review"
-    },
-    {
-      "path": "templates/partials/backup_unused/mobile_nav.html",
-      "matches": 3,
-      "classification": "documentation/tool/config reference; selective review"
-    },
-    {
       "path": "templates/partials/footer_industry.html",
       "matches": 3,
       "classification": "documentation/tool/config reference; selective review"

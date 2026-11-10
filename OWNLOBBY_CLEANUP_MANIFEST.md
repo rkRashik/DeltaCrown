@@ -38,3 +38,11 @@ No technical filename/folder/module/app label/table/migration/API field/URL name
 ## Cleanup versus disk operations
 
 This is repository maintenance, not a disk purge. Only one known tracked duplicate file was removed. No recursive delete, archive extraction, media migration, database operation, secret rotation or production connection was performed as cleanup. Validation may create new ignored synthetic outputs and remove its own freshly created temporary fixtures; those operations do not authorize touching existing owner artifacts. Git history/checkpoints remain intact and nothing is pushed or deployed.
+
+## Follow-up cleanup, 2026-11-10
+
+| Action | Path | Evidence |
+|---|---|---|
+| Moved (`git mv`) | `OWNLOBBY_LAUNCH_CUTOVER.md`, `OWNLOBBY_RECOVERY_CANDIDATE_CHECKLIST.md`, `OWNLOBBY_RECOVERY_CUTOVER.md` to `reference/archive/` | Superseded rollback-era reports; unlisted in root policy (hygiene check flagged them); inbound links in BACKLOG and runbooks updated |
+| Deleted | `templates/partials/backup_unused/*` (5 templates) | No `include`/`extends` reference anywhere in templates or Python; only generated inventories listed them (entries removed); recoverable from Git history |
+| Retained deliberately | `migrations_new/`, `migrations/sql/`, duplicate-looking coin SVGs, `riot.txt`, root reports in the allowed list | Persisted-path/runtime usage cannot be excluded by source search, or documented as protected |

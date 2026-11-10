@@ -38,11 +38,13 @@ These references can contain historical examples; source, current tests and curr
 | KEEP | Active documentation or required app/ADR/configuration/runtime material; maintain links. |
 | CONSOLIDATE | Bring overlapping entry-point guidance together while preserving unique content and provenance. README/index consolidation was performed; it does not discard prior reports. |
 | ARCHIVE CANDIDATE | Valuable, superseded context; retain until a reviewed move is justified. A label is not approval to delete or move. |
-| DELETE CANDIDATE | Only verified disposable/identical material with demonstrated references and recovery. Current single performed deletion is documented in the cleanup manifest. |
+| DELETE CANDIDATE | Only verified disposable/identical material with demonstrated references and recovery. Performed deletions are documented in the cleanup manifest (first cleanup, and 2026-11-10: five unreferenced `templates/partials/backup_unused/` templates). |
 | PROTECTED | Owner-owned planning, operational evidence, approved assets, data or essential instructions; no automatic reorganization. |
 | NEEDS OWNER REVIEW | Unclear purpose, ownership or future value; preserve and explain the decision needed. |
 
 [Pre-cleanup product README](reference/README_PRODUCT_HISTORY.md) is a verbatim snapshot with [provenance](reference/README.md); the engineering README replaces its setup role. [Technical overview](README_TECHNICAL.md), [competitive audit](AuditReport.md), [route inventory](DELTACROWN_ROUTE_AND_PAGE_INVENTORY.md) and [capture plan](DELTACROWN_SCREENSHOT_CAPTURE_PLAN.md) remain in place. Their DeltaCrown names/dates are historical context, not rename targets or current completion guarantees.
+
+Three superseded rollback-era reports (launch cutover, recovery candidate checklist, recovery cutover) were archived on 2026-11-10 to [reference/archive/](reference/README.md#archived-reports); production is live on master `7afd6f68` (see [STATUS](Documents/Development/STATUS.md)), so their cutover steps are history, not instructions.
 
 [Rebrand report](OWNLOBBY_REBRAND.md), [original validation](OWNLOBBY_VALIDATION.md) and [Phase 3 dependency validation](OWNLOBBY_DEPENDENCY_VALIDATION.md) preserve audit/rollback evidence. Current reports explicitly supersede older unresolved items; never copy old Go/No-Go claims forward without verification. The [machine inventory](reference/repository-inventory.json) classifies existing tracked document-like files, including email templates/requirements that must not be archived as prose.
 

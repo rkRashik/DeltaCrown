@@ -4,6 +4,8 @@ Updated: 2026-11-07 (+06:00). This is the canonical task-state record. [STATUS](
 
 Owner for product/production decisions: repository owner. Implementers/reviewers are assigned when a task starts; none is implied by this list. OL-01 through OL-13 initially reference [Issue #37](https://github.com/rkRashik/DeltaCrown/issues/37); create narrower issues only when useful and authorized. Status vocabulary and completion workflow are in [README](README.md).
 
+> **2026-11-10:** production is live on master `7afd6f68` (PRs #72-#82); rollback target `044b9cfb`. Task rows and evidence below are dated; where they say production is on `f1f8d185` or that master must not be deployed, that was true on its date and is superseded by [STATUS](STATUS.md). Statuses are not changed by this note: OL-13 launch acceptance and the OL-01 provider checks still need explicit owner evidence.
+
 | ID | Task | Priority | Status | Main dependency / next action |
 |---|---|---|---|---|
 | [OL-INC-01](#ol-inc-01) | Navigation hang after release / incident verification | P0 | VERIFYING | One release branch; CI plus owner health/host/rollback and measured admission gates; no activation/deploy |
@@ -143,7 +145,7 @@ Owner for product/production decisions: repository owner. Implementers/reviewers
 - Objective: make required lifecycle, notification and other async work reliable within capacity/budget.
 - Dependencies: OL-03 resource evidence; owner architecture/cost approval before activation.
 - Relevant code: [Celery configuration](../../deltacrown/celery.py), [tournament operations tasks](../../apps/tournament_ops/tasks/), [notification tasks](../../apps/notifications/tasks.py), [start script](../../bin/start_render.sh).
-- References/evidence: Issue #37 reports Celery OFF and a successful five-minute authenticated lifecycle cron; [launch handoff](../../OWNLOBBY_LAUNCH_CUTOVER.md) contains historical job work, not permission to activate it.
+- References/evidence: Issue #37 reports Celery OFF and a successful five-minute authenticated lifecycle cron; [launch handoff](../../reference/archive/OWNLOBBY_LAUNCH_CUTOVER.md) contains historical job work, not permission to activate it.
 - Acceptance: inventory job producers/consumers and actual triggers; document missed/duplicate/retry semantics, timeouts, idempotency, after-commit dispatch, backlog monitoring and shutdown; compare separate worker/scheduler/other queue options and costs; test the selected design in isolation before approved production rollout.
 - Next action: map required launch jobs and gaps while leaving Celery OFF. A cron HTTP success alone cannot close this task.
 

@@ -2,6 +2,11 @@
 
 Append dated milestones; retain original event dates. Source changes, historical test reports, owner actions and fresh verification are distinct. Task status is maintained in [BACKLOG](BACKLOG.md). This is a selected evidence index, not a replacement for Git history.
 
+## 2026-11-10
+
+- **Public UI/UX Sprint 1 live:** PRs #72-#82 merged (2026-11-09/10) and master `7afd6f68` deployed manually to Render (`dep-dbpk6jbbc2fs73ae5m9g`, live 16:19 UTC); previous release `044b9cfb` is the rollback target. No migrations. Batch E fixed an open redirect on login and an HTTP 500 on password change. Open: #77 and Draft #47. Source: Render API (read-only), `git log`, PR history; see [STATUS](STATUS.md).
+- **Repository cleanup (this PR):** current entry points corrected for the launch; three superseded recovery/cutover reports moved to `reference/archive/`; five unreferenced `templates/partials/backup_unused/` templates removed.
+
 ## 2026-11-07
 
 - **OL-INC-01 release preparation:** existing release branch consolidates tested #46 stack, excludes inactive #47 I/O helpers. Release deltas: explicit WS/admission-readiness configuration, DB-backed sessions with existing table/cookie compatibility, and unused v3 global homepage processor bypass. [Draft release #48](https://github.com/rkRashik/DeltaCrown/pull/48), code `0c38eefc`: [Linux matrix](https://github.com/rkRashik/DeltaCrown/actions/runs/42279623098) **27 tests/version PASS** on Python 3.11.9/3.12, including PostgreSQL session compatibility/revocation and finite/blocked shutdown controls. [Linux release smoke PASS](https://github.com/rkRashik/DeltaCrown/actions/runs/42279623093), including 329 selected regressions, public routes and frontend/static checks; one existing template failure/no new failures. Synthetic guest cold queries 68 -> 36 empty / 80 -> 43 populated, warm 1 -> 1, HTML/context identical against reviewed baseline. [STATUS](STATUS.md#release-preparation-2026-11-07-0600) records limits, provider constraints and unresolved gates. No production change, activation, merge, deployment or measured live improvement. Owner chose Dashboard operations instead of providing API credentials.

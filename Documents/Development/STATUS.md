@@ -1,5 +1,15 @@
 # OwnLobby current status
 
+## Production launch of Public UI/UX Sprint 1 - 2026-11-10
+
+**Verified now (Render API, read-only, 2026-11-10):** production service `DeltaCrown` is LIVE on master `7afd6f68d37793a0ee376b3aaf4115c84230df88` (deploy `dep-dbpk6jbbc2fs73ae5m9g`, built 16:16-16:19 UTC, manual deploy; auto-deploy is OFF). The previous live release, and the rollback target, is `044b9cfb836281868dd37d95c4e944babfcf1e4b` (PR #74, deploy `dep-dbop5b9srm7s73cma4c0`). The 2026-11-06/07 statements below that say "do not deploy master" or describe production on `f1f8d185` are historical and superseded.
+
+Merged and live (PRs #72-#82, all merged 2026-11-09/10): #72 OL-13 P1 branding and search discoverability; #73 OL-13 P2 eFootball pilot journey readiness; #74 OL-13 P3 release QA corrections; #75 Batch 0A broken public/player routes; #76 Batch 0A wallet PIN route name; #78 public-site foundations; #79 homepage, information pages, Arena/Organizations/Community; #80 tournament experience (reliability fix, results hardening, registration journey); #81 public identity (profiles, teams, organizations, rankings); #82 Batch E (auth pages, notifications, error pages, login open-redirect fix, password-change 500 fix). No database migrations in the production-to-master difference; `render_build.sh`, `start.sh`, dependencies and settings modules were unchanged.
+
+Still open and NOT live: [PR #77](https://github.com/rkRashik/DeltaCrown/pull/77) (wallet PIN: one 6-digit policy, verified changes, shared lockout; mergeable against master, no migrations) and Draft #47 (inactive QA I/O contracts). Residual wallet risk until #77 ships: withdrawal requests are reachable and are processed by staff in the Django admin, so verify each request; the lockout in `withdraw_request` and `pin_verify` is not atomic even after #77 (follow-up needed).
+
+Not established by this entry: formal OL-13 launch acceptance (an owner decision), the OL-01 provider-side items, and Redis/memory behaviour under real traffic. A pre-deploy Supabase backup was not verified by the release audit; confirm one exists. Evidence from the release audits is kept locally in ignored `Artifacts/`.
+
 ## Frontend modernization, Batch 0A: wallet PIN route name (F6) - 2026-11-09
 
 PR on `fix/frontend-batch0a-wallet-pin-routing`, not merged or deployed. The POST-only API `api/wallet/pin/setup/` is now named `economy:pin_setup_api` (path unchanged); `economy:pin_setup` resolves to the HTML page `/pin/setup/` again, which fixes the withdrawal redirect and the wallet-dashboard PIN button (both previously ended on HTTP 405). No PIN, wallet, CSRF or authorization behavior changed. **Open, separate issue:** the HTML flow (`PINSetupForm`, `wallet.set_pin`) requires a 4-digit PIN while the API requires 6 digits and writes the hash directly; a PIN set through the API cannot be entered in the 4-digit withdrawal form. Needs a product/security decision before any change. Tests: `apps/economy/tests/test_pin_setup_routing.py`; six `test_request_actions.py` tests fail identically on master.
