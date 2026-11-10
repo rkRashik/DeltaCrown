@@ -18,9 +18,9 @@
             theme: {
                 extend: {
                     colors: {
-                        'dc-cyan': '#06b6d4',
-                        'dc-purple': '#8b5cf6',
-                        'dc-gold': '#facc15',
+                        'dc-cyan': '#E2B761',
+                        'dc-purple': '#E2B761',
+                        'dc-gold': '#E2B761',
                         'dc-bg': '#030303',
                         'dc-surface': '#0a0a0a',
                         'dc-card': '#111111',
@@ -57,8 +57,8 @@
         }
 
         :root {
-            --accent: {{ game_color|default:"#06b6d4" }};
-            --accent-rgb: {{ game_color_rgb|default:"6, 182, 212" }};
+            --accent: #E2B761; /* brand accent for every game */
+            --accent-rgb: 226, 183, 97;
             /* Responsive font scale — 420px to 4K */
             --fs-2xs: clamp(0.625rem, 0.55rem + 0.25vw, 0.75rem);   /* 10px → 12px */
             --fs-xs:  clamp(0.6875rem, 0.6rem + 0.3vw, 0.875rem);   /* 11px → 14px */
@@ -113,7 +113,7 @@
         .player-slot:hover { border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.04); }
         .player-slot.slot-starter { border-left:3px solid var(--accent); }
         .player-slot.slot-sub { border-left:3px solid rgba(255,255,255,.2); }
-        .player-slot.slot-coach { border-left:3px solid #8b5cf6; }
+        .player-slot.slot-coach { border-left:3px solid #E2B761; }
 
         .step-hidden { display:none !important; }
 
@@ -169,8 +169,10 @@
         .desc-content blockquote { border-left: 3px solid var(--accent); padding-left: 0.75rem; color: #a0a0b8; font-style: italic; margin: 0.5rem 0; }
     </style>
     {% include "partials/brand_head.html" %}
+    <link rel="stylesheet" href="{% static 'ownlobby/brand.css' %}">
+    <link rel="stylesheet" href="{% static 'ownlobby/foundation.css' %}">
 </head>
-<body class="relative">
+<body class="relative ol-tourney">
 
     <div class="bg-cinematic"></div>
     <div class="bg-overlay"></div>
@@ -337,7 +339,7 @@
                             Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
 
-                        <button type="button" id="btn-submit" data-action="submit-registration" class="hidden px-7 py-2.5 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-wider opacity-50 cursor-not-allowed" style="{% if is_waitlist %}background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);{% else %}background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);{% endif %}">
+                        <button type="button" id="btn-submit" data-action="submit-registration" class="hidden px-7 py-2.5 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-wider opacity-50 cursor-not-allowed" style="{% if is_waitlist %}background: linear-gradient(135deg, #E2B761, #E2B761); box-shadow: 0 0 25px rgba(226, 183, 97, 0.45);{% else %}background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);{% endif %}">
                             <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
                             {{ submit_action_label|default:'Register Now' }}
                         </button>

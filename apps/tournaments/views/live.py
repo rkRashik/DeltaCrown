@@ -1756,6 +1756,75 @@ def match_center_fan_pulse_vote(request, slug, match_id):
     )
 
 
+def _build_public_standings(tournament, result):
+    """Return (standings, unplaced) for the public Results page.
+
+    standings: [{'placement': int, 'name': str, 'is_tied': bool}] ordered by recorded placement.
+    unplaced:  [{'name': str}] confirmed participants with no verified placement, in registration order.
+
+    Only placements that can be tied to a real registration of this tournament are shown. Malformed rows,
+    unknown or duplicate registrations, duplicate placements that are not flagged as a tie, and standings
+    that contradict the recorded winner / runner-up / third place are dropped rather than presented as an
+    official result.
+    """
+    registrations = {reg.id: reg for reg in tournament.registrations.all()}
+
+    def _name(entry, reg):
+        label = (entry or {}).get('team_name')
+        if label:
+            return label
+        user = getattr(reg, 'user', None)
+        return getattr(user, 'username', None) or 'Participant'
+
+    entries = list(getattr(result, 'final_standings', None) or []) if result else []
+    if result and not entries:
+        try:
+            from apps.tournaments.services.placement_service import PlacementService
+            entries = PlacementService.build_final_standings(tournament) or []
+        except Exception:  # never block the page on a derivation problem
+            logger.exception('Could not derive standings for tournament %s', getattr(tournament, 'pk', None))
+            entries = []
+
+    rows, seen = [], set()
+    for entry in entries if isinstance(entries, (list, tuple)) else []:
+        if not isinstance(entry, dict) or isinstance(entry.get('placement'), bool):
+            continue
+        try:
+            placement, rid = int(entry.get('placement')), int(entry.get('registration_id'))
+        except (TypeError, ValueError):
+            continue
+        if placement < 1 or rid in seen or rid not in registrations:
+            continue
+        seen.add(rid)
+        rows.append({'placement': placement, 'rid': rid, 'name': _name(entry, registrations[rid]),
+                     'is_tied': bool(entry.get('is_tied'))})
+
+    # The same placement for several participants is only valid when every one of them is flagged as tied.
+    by_placement = {}
+    for row in rows:
+        by_placement.setdefault(row['placement'], []).append(row)
+    rows = [row for row in rows
+            if len(by_placement[row['placement']]) == 1 or all(r['is_tied'] for r in by_placement[row['placement']])]
+
+    # The recorded result is authoritative: standings that contradict it are not shown at all.
+    if result:
+        for placement, recorded_id in ((1, result.winner_id), (2, result.runner_up_id), (3, result.third_place_id)):
+            group = [r['rid'] for r in rows if r['placement'] == placement]
+            if recorded_id and group and recorded_id not in group:
+                logger.warning('Final standings contradict the recorded result for tournament %s (placement %s)',
+                               getattr(tournament, 'pk', None), placement)
+                rows = []
+                break
+
+    rows.sort(key=lambda r: r['placement'])
+    placed = {r['rid'] for r in rows}
+    standings = [{'placement': r['placement'], 'name': r['name'], 'is_tied': r['is_tied']} for r in rows]
+    participating = (Registration.CONFIRMED, Registration.AUTO_APPROVED)
+    unplaced = [{'name': _name(None, reg)} for rid, reg in registrations.items()
+                if rid not in placed and reg.status in participating]
+    return standings, unplaced
+
+
 class TournamentResultsView(DetailView):
     """
     FE-T-018: Tournament Results Page
@@ -1837,9 +1906,11 @@ class TournamentResultsView(DetailView):
         # All completed matches
         context['completed_matches'] = tournament.matches.filter(state=Match.COMPLETED)
         
-        # Leaderboard (all registrations)
-        # Note: In production, this would be sorted by final placement
-        # For now, we use seed as proxy
+        # Final standings come from canonical placements only (TournamentResult.final_standings, or the
+        # bracket-derived placements). Seed order is NOT a result, so participants without a recorded
+        # placement are listed separately and never ranked.
+        context['standings'], context['unplaced_participants'] = _build_public_standings(
+            tournament, tournament.result if has_results else None)
         context['leaderboard'] = tournament.registrations.all()
         
         # Tournament stats
@@ -1855,20 +1926,16 @@ class TournamentResultsView(DetailView):
                 ('Results', f"/tournaments/{tournament.slug}/results/"),
             ]),
         )
-        if has_results and getattr(context['result'], 'final_standings', None):
-            standings = context['result'].final_standings[:20]
+        if context['standings']:
+            # Structured data mirrors the verified rows shown on the page, never the raw stored JSON.
             context['seo']['schema_json'].append(json.dumps({
                 '@context': 'https://schema.org',
                 '@type': 'ItemList',
                 'name': f'{tournament.name} Results',
                 'url': f'/tournaments/{tournament.slug}/results/',
                 'itemListElement': [
-                    {
-                        '@type': 'ListItem',
-                        'position': item.get('placement') or index,
-                        'name': item.get('team_name') or f"Participant #{item.get('registration_id', index)}",
-                    }
-                    for index, item in enumerate(standings, start=1)
+                    {'@type': 'ListItem', 'position': row['placement'], 'name': row['name']}
+                    for row in context['standings'][:20]
                 ],
             }, ensure_ascii=False, default=str, separators=(',', ':')))
         return context

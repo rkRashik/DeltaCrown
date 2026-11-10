@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize %}
 
 {% block title %}Already Registered — {{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -20,7 +21,7 @@
         <div class="rounded-xl border border-white/8 p-5 text-left space-y-3" style="background: rgba(12, 12, 18, 0.8);">
             <div class="flex justify-between text-sm">
                 <span class="text-gray-500">Status</span>
-                <span class="font-bold {% if registration.status == 'confirmed' %}text-emerald-400{% elif registration.status == 'pending' %}text-amber-400{% else %}text-blue-400{% endif %}">
+                <span class="font-bold {% if registration.status == 'confirmed' %}text-emerald-400{% elif registration.status == 'pending' %}text-yellow-400{% else %}text-blue-400{% endif %}">
                     {{ registration.get_status_display }}
                 </span>
             </div>
@@ -37,8 +38,8 @@
         </div>
 
         {% if needs_verification %}
-        <div class="rounded-xl border border-amber-500/20 p-4" style="background: rgba(245, 158, 11, 0.06);">
-            <p class="text-xs text-amber-400 flex items-center gap-2 justify-center">
+        <div class="rounded-xl border border-amber-500/20 p-4" style="background: rgba(226, 183, 97, 0.06);">
+            <p class="text-xs text-yellow-400 flex items-center gap-2 justify-center">
                 <i data-lucide="clock" class="w-4 h-4"></i>
                 Your registration is being verified. You'll be notified once confirmed.
             </p>

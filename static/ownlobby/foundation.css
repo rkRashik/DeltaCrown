@@ -267,3 +267,40 @@ body .ol-footer-legacy { background-color: var(--ol-canvas); }
 @media (max-width: 1023px) { .ol-btn--sm { min-height: var(--ol-tap); } }
 .ol-input, .ol-select, .ol-textarea { margin: 0; box-sizing: border-box; }
 .ol-input[type="search"] { -webkit-appearance: none; appearance: none; }
+
+/* =====================================================================
+   Tournament page family (Sprint 1 / Batch C): detail, bracket, results, leaderboard, match, groups, spectator.
+   One accent (saffron) for actions; colour only for status. Legacy Tailwind utilities on these templates are
+   re-skinned here so the markup stays untouched. Scope: <body class="ol-tourney">.
+   ===================================================================== */
+.ol-tourney { background: var(--ol-canvas); color: var(--ol-text); }
+.ol-tourney .grain-overlay, .ol-tourney .noise-overlay { display: none; }
+.ol-tourney .font-display, .ol-tourney .font-gaming, .ol-tourney .font-tech, .ol-tourney .arena-font-tech { font-family: var(--ol-font, Inter, system-ui, sans-serif); }
+.ol-tourney .font-black { font-weight: 700; }
+.ol-tourney .uppercase { text-transform: none; }
+.ol-tourney [class*="tracking-["], .ol-tourney [class*="tracking-wide"], .ol-tourney [class*="tracking-wider"], .ol-tourney [class*="tracking-widest"], .ol-tourney [class*="tracking-tight"] { letter-spacing: normal; }
+.ol-tourney [class*="text-[8px]"], .ol-tourney [class*="text-[9px]"], .ol-tourney [class*="text-[10px]"], .ol-tourney [class*="text-[11px]"] { font-size: .75rem; }
+.ol-tourney [class*="text-cyan-"], .ol-tourney [class*="text-sky-"], .ol-tourney [class*="text-blue-"], .ol-tourney [class*="text-purple-"], .ol-tourney [class*="text-violet-"], .ol-tourney [class*="text-fuchsia-"],
+.ol-tourney .text-dc-cyan, .ol-tourney .text-dc-purple, .ol-tourney .text-dc-gold { color: var(--ol-saffron); }
+.ol-tourney [class*="text-gray-5"], .ol-tourney [class*="text-gray-6"], .ol-tourney [class*="text-slate-5"], .ol-tourney [class*="text-slate-6"] { color: var(--ol-text-muted); }
+.ol-tourney [class*="bg-cyan-"], .ol-tourney [class*="bg-sky-"], .ol-tourney [class*="bg-blue-"], .ol-tourney [class*="bg-purple-"], .ol-tourney [class*="bg-violet-"], .ol-tourney [class*="bg-fuchsia-"],
+.ol-tourney [class*="bg-dc-cyan"], .ol-tourney [class*="bg-dc-purple"] { background-color: rgb(226 183 97 / .14); }
+.ol-tourney [class*="border-cyan-"], .ol-tourney [class*="border-sky-"], .ol-tourney [class*="border-blue-"], .ol-tourney [class*="border-purple-"], .ol-tourney [class*="border-violet-"] { border-color: rgb(226 183 97 / .35); }
+.ol-tourney [class*="shadow-["], .ol-tourney [class*="shadow-2xl"], .ol-tourney [class*="drop-shadow"] { box-shadow: none; filter: none; }
+.ol-tourney [class*="blur-["] { display: none; }
+.ol-tourney [class*="backdrop-blur"] { backdrop-filter: none; }
+.ol-tourney [class*="rounded-[2"], .ol-tourney [class*="rounded-[1.7"], .ol-tourney [class*="rounded-3xl"] { border-radius: var(--ol-radius-lg); }
+.ol-tourney .glass, .ol-tourney .glass-panel, .ol-tourney .glass-extreme, .ol-tourney .mood-surface { background: var(--ol-surface); background-image: none; border: 1px solid var(--ol-border); box-shadow: none; backdrop-filter: none; }
+:root[data-theme] .ol-tourney .glass, :root[data-theme] .ol-tourney .glass-panel, :root[data-theme] .ol-tourney .glass-extreme { background-image: none; }
+.ol-tourney a[class*="bg-dc-cyan"], .ol-tourney button[class*="bg-dc-cyan"] { background-color: var(--ol-saffron); color: var(--ol-canvas); }
+/* Mobile tournament surfaces share the same fonts and neutral cards */
+.ol-tourney .tdm-mono, .ol-tourney .tdm-sora, .ol-tourney .arm-sora { font-family: var(--ol-font, Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
+.ol-tourney .tdm-card { background: var(--ol-surface); box-shadow: none; border: 1px solid var(--ol-border); }
+.ol-tourney #arm-root { background: var(--ol-canvas); }
+html body.ol-tourney { background-color: var(--ol-canvas); }
+.ol-tourney :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--ol-saffron); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .ol-tourney *, .ol-tourney *::before, .ol-tourney *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+.ol-tourney [class*="text-yellow-"], .ol-tourney [class*="text-amber-"] { color: var(--ol-saffron); }
+.ol-tourney [class*="bg-yellow-"], .ol-tourney [class*="bg-amber-"] { background-color: rgb(226 183 97 / .14); }
+.ol-tourney [class*="border-yellow-"], .ol-tourney [class*="border-amber-"] { border-color: rgb(226 183 97 / .35); }
+.ol-tourney button[class*="bg-yellow-"]:not([class*="/"]), .ol-tourney a[class*="bg-yellow-"]:not([class*="/"]) { background-color: var(--ol-saffron); color: var(--ol-canvas); }

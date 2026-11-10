@@ -6,6 +6,7 @@
    Phase 6 — Mouse-Drag Carousel & Bulletproof Hero UI
 {% endcomment %}
 
+{% block body_class %}ol-tourney{% endblock %}
 {% block title %}Tournaments | {{ brand.name }}{% endblock %}
 {% block og_title %}Tournaments | {{ brand.name }}{% endblock %}
 
@@ -306,7 +307,7 @@
     .scrollbar-cyber::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.6); }
 
     /* --- PROGRESS BAR HERO --- */
-    .hero-progress { width: 0%; height: 2px; background: #06b6d4; transition: width linear; }
+    .hero-progress { width: 0%; height: 2px; background: #E2B761; transition: width linear; }
 
     /* --- EMPTY-STATE HERO ANIMATED ORBS --- */
     @keyframes orb-drift-a {
@@ -680,7 +681,7 @@
                 <div class="grid grid-cols-3 gap-2 p-3 bg-black/40 border border-white/5 rounded-xl mb-5 backdrop-blur-sm mt-auto">
                   <div class="text-center">
                     <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Prize</div>
-                    <div class="text-dc-gold font-black text-sm">{% if t.prize_pool %}৳{{ t.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}</div>
+                    <div class="text-dc-gold font-black text-sm">{% if t.prize_pool %}৳{{ t.prize_pool|floatformat:0|intcomma }}{% else %}None{% endif %}</div>
                   </div>
                   <div class="text-center border-l border-r border-white/5">
                     <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Entry</div>

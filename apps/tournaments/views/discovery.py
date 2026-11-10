@@ -291,6 +291,7 @@ class TournamentListView(ListView):
             context['featured_tournaments'], viewer,
         )
         for tournament in context['featured_tournaments']:
+            tournament.effective_status = tournament.status  # featured set is never completed; templates read this
             tournament.discovery_eligibility = featured_eligibility.get(
                 tournament.id, {'can_register': False, 'status': 'unknown'}
             )

@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize %}
 
 {% comment %}
@@ -33,7 +34,7 @@
         <div class="flex flex-col items-center">
           <div class="w-16 h-16 rounded-full bg-gray-500/10 border-2 border-gray-500 flex items-center justify-center mb-2">
             {% if runner_up %}
-              <span class="text-lg font-display font-bold text-white">{{ runner_up.user.username|truncatechars:2|upper }}</span>
+              <span class="text-lg font-display font-bold text-white">{{ runner_up.user.username|slice:":1"|upper }}</span>
             {% else %}
               <i data-lucide="user" class="w-6 h-6 text-gray-600"></i>
             {% endif %}
@@ -52,7 +53,7 @@
           </div>
           <div class="w-20 h-20 rounded-full bg-dc-gold/10 border-2 border-dc-gold flex items-center justify-center mb-2 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
             {% if winner %}
-              <span class="text-2xl font-display font-bold text-dc-gold">{{ winner.user.username|truncatechars:2|upper }}</span>
+              <span class="text-2xl font-display font-bold text-dc-gold">{{ winner.user.username|slice:":1"|upper }}</span>
             {% else %}
               <i data-lucide="trophy" class="w-8 h-8 text-dc-gold"></i>
             {% endif %}
@@ -68,7 +69,7 @@
         <div class="flex flex-col items-center">
           <div class="w-16 h-16 rounded-full bg-amber-800/10 border-2 border-amber-700 flex items-center justify-center mb-2">
             {% if third_place %}
-              <span class="text-lg font-display font-bold text-white">{{ third_place.user.username|truncatechars:2|upper }}</span>
+              <span class="text-lg font-display font-bold text-white">{{ third_place.user.username|slice:":1"|upper }}</span>
             {% else %}
               <i data-lucide="user" class="w-6 h-6 text-gray-600"></i>
             {% endif %}
@@ -166,26 +167,28 @@
         </h3>
         <a href="{% url 'tournaments:leaderboard' tournament.slug %}" class="text-[10px] text-dc-cyan hover:underline">View Full</a>
       </div>
-      {% if leaderboard %}
-        <div class="divide-y divide-dc-border max-h-[400px] overflow-y-auto">
-          {% for reg in leaderboard %}
-            <div class="flex items-center justify-between px-6 py-3">
+      {% if standings %}
+        <ol class="divide-y divide-dc-border max-h-[400px] overflow-y-auto">
+          {% for row in standings %}
+            <li class="flex items-center justify-between px-6 py-3">
               <div class="flex items-center gap-3">
                 <span class="w-7 h-7 rounded-full bg-dc-surface flex items-center justify-center text-xs font-mono
-                  {% if forloop.counter == 1 %}text-dc-gold{% elif forloop.counter == 2 %}text-gray-400{% elif forloop.counter == 3 %}text-amber-600{% else %}text-gray-500{% endif %}">
-                  {{ forloop.counter }}
-                </span>
-                <span class="text-sm text-white">{{ reg.user.username|default:"Unknown" }}</span>
+                  {% if row.placement == 1 %}text-dc-gold{% elif row.placement == 2 %}text-gray-400{% elif row.placement == 3 %}text-amber-600{% else %}text-gray-500{% endif %}">{{ row.placement }}</span>
+                <span class="text-sm text-white">{{ row.name }}</span>
               </div>
-              {% if reg.seed %}
-                <span class="text-[10px] text-gray-600">Seed {{ reg.seed }}</span>
-              {% endif %}
-            </div>
+              {% if row.is_tied %}<span class="text-[10px] text-gray-500">Tied</span>{% endif %}
+            </li>
           {% endfor %}
-        </div>
+        </ol>
       {% else %}
-        <div class="px-6 py-8 text-center">
-          <p class="text-xs text-gray-600">No standings data</p>
+        <div class="px-6 py-6 text-center">
+          <p class="text-xs text-gray-500">Final placements have not been published yet.</p>
+        </div>
+      {% endif %}
+      {% if unplaced_participants %}
+        <div class="px-6 py-3 border-t border-dc-border">
+          <p class="text-[11px] text-gray-500 mb-2">{% if standings %}Other participants{% else %}Participants{% endif %}</p>
+          <p class="text-sm text-gray-300">{% for p in unplaced_participants %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
         </div>
       {% endif %}
     </div>

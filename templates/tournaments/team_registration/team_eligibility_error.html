@@ -1,4 +1,5 @@
 {% extends "tournaments/base.html" %}
+{% block body_class %}ol-tourney{% endblock %}
 {% load static humanize %}
 
 {% block title %}Registration — {{ tournament.name }} | {{ brand.name }}{% endblock %}
@@ -9,9 +10,9 @@
         <!-- Error Icon -->
         <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl border mx-auto
             {% if error_type == 'no_team' %}border-amber-500/20{% elif error_type == 'no_permission' %}border-red-500/20{% elif error_type == 'roster_too_small' %}border-amber-500/20{% elif error_type == 'no_profile' %}border-blue-500/20{% else %}border-red-500/20{% endif %}"
-            style="background: {% if error_type == 'no_team' %}rgba(245, 158, 11, 0.1){% elif error_type == 'no_permission' %}rgba(239, 68, 68, 0.1){% elif error_type == 'roster_too_small' %}rgba(245, 158, 11, 0.1){% elif error_type == 'no_profile' %}rgba(59, 130, 246, 0.1){% else %}rgba(239, 68, 68, 0.1){% endif %};">
+            style="background: {% if error_type == 'no_team' %}rgba(226, 183, 97, 0.1){% elif error_type == 'no_permission' %}rgba(239, 68, 68, 0.1){% elif error_type == 'roster_too_small' %}rgba(226, 183, 97, 0.1){% elif error_type == 'no_profile' %}rgba(226, 183, 97, 0.1){% else %}rgba(239, 68, 68, 0.1){% endif %};">
             <i data-lucide="{% if error_type == 'no_team' %}users-x{% elif error_type == 'no_permission' %}shield-x{% elif error_type == 'roster_too_small' %}user-plus{% elif error_type == 'no_profile' %}user-cog{% else %}alert-triangle{% endif %}"
-               class="w-10 h-10 {% if error_type == 'no_team' %}text-amber-400{% elif error_type == 'no_permission' %}text-red-400{% elif error_type == 'roster_too_small' %}text-amber-400{% elif error_type == 'no_profile' %}text-blue-400{% else %}text-red-400{% endif %}"></i>
+               class="w-10 h-10 {% if error_type == 'no_team' %}text-yellow-400{% elif error_type == 'no_permission' %}text-red-400{% elif error_type == 'roster_too_small' %}text-yellow-400{% elif error_type == 'no_profile' %}text-blue-400{% else %}text-red-400{% endif %}"></i>
         </div>
 
         <div>
@@ -29,7 +30,7 @@
             <div>
                 <div class="flex justify-between text-xs mb-2">
                     <span class="text-gray-500">Roster Size</span>
-                    <span class="text-amber-400 font-mono font-bold">{{ current_members }}/{{ required_members }}</span>
+                    <span class="text-yellow-400 font-mono font-bold">{{ current_members }}/{{ required_members }}</span>
                 </div>
                 <div class="h-2 bg-white/5 rounded-full overflow-hidden">
                     <div class="h-full bg-amber-500 rounded-full transition-all" style="width: {% widthratio current_members required_members 100 %}%;"></div>
@@ -51,19 +52,19 @@
             {% if error_type == 'no_team' %}
             <a href="/teams/create/?game={{ tournament.game.slug }}"
                class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
-               style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+               style="background: linear-gradient(135deg, #E2B761, #d97706);">
                 <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i> Create a Team
             </a>
             {% elif error_type == 'roster_too_small' and user_team %}
             <a href="{{ user_team.get_absolute_url }}"
                class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
-               style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+               style="background: linear-gradient(135deg, #E2B761, #d97706);">
                 <i data-lucide="user-plus" class="w-4 h-4 inline mr-1"></i> Manage Roster
             </a>
             {% elif error_type == 'no_profile' %}
             <a href="/settings/profile/"
                class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
-               style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+               style="background: linear-gradient(135deg, #E2B761, #E2B761);">
                 Complete Profile
             </a>
             {% endif %}
