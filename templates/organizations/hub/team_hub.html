@@ -1251,7 +1251,6 @@ img[loading="lazy"] {
     {% else %}
     <div class="dcm-sec-head" style="margin-top:22px;">
         <div class="dcm-sec-title">My Teams</div>
-        <a href="/dashboard/teams" class="dcm-sec-link">Manage</a>
     </div>
     <div class="dcm-hx">
         {% for m in user_teams %}
@@ -2034,9 +2033,6 @@ img[loading="lazy"] {
                     <h3 class="font-display font-bold text-white text-lg flex items-center gap-2">
                         <i data-lucide="users" class="w-5 h-5 text-dc-cyan"></i>My Teams
                     </h3>
-                    {% if user.is_authenticated and user_teams %}
-                    <a href="/dashboard/teams" class="text-sm text-gray-400 hover:text-dc-cyan transition-colors font-semibold">Manage</a>
-                    {% endif %}
                 </div>
 
                 {% if user.is_authenticated %}
@@ -2355,7 +2351,7 @@ img[loading="lazy"] {
 
         <!-- CTA link -->
         <div class="text-center mt-10 reveal">
-            <a href="/ranking-policy" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-dc-cyan hover:bg-dc-cyan/[0.08] hover:border-dc-cyan/25 transition-all group">
+            <a href="/competition/ranking/about/" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-dc-cyan hover:bg-dc-cyan/[0.08] hover:border-dc-cyan/25 transition-all group">
                 View {{ brand.features.ranking_points }} Ranking Rules <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </a>
         </div>
@@ -2383,7 +2379,6 @@ img[loading="lazy"] {
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
             </a>
             {% endif %}
-            <a href="/team-guide" class="px-8 py-3.5 bg-white/5 border border-white/10 text-gray-300 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm">Read the Team Guide</a>
         </div>
     </div>
 </section>
@@ -2569,7 +2564,7 @@ img[loading="lazy"] {
 {# ===================== END DESKTOP HUB ===================== #}
 {% endblock %}
 
-{% block footer %}{% endblock %}
+{% block footer %}{# The desktop footer is part of the page; tablet and phone layouts get the compact legal footer. #}<div class="lg:hidden">{% include "partials/footer_legal.html" %}</div>{% endblock %}
 
 {% block extra_js %}
 <script nonce="{{ request.csp_nonce }}">
